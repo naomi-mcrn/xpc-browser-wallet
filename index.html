@@ -26,37 +26,13 @@
                 <input type="text" id="xpc_bal" class="numeric large" value="-.----" readonly="readonly" />
                 <span>XPC</span>
             </div>
-            <div class="crow u-mode u-mode-justifier hide">
-                <span>supp. address</span>
-                <input type="text" id="xpc_addr_supp" value="" />
-            </div>
-            <div class="crow hide">
-            	<span>mode</span>
-                <input type="radio" name="mode" value="simple" id="mode_simple" checked="checked" />
-                <label for="mode_simple">Simple</label>
-                <input type="radio" name="mode" value="splitter" id="mode_splitter" />
-                <label for="mode_splitter">Splitter</label>
-                <input type="radio" name="mode" value="justifier" id="mode_justifier" />
-                <label for="mode_justifier">Justifier</label>
-            </div>
-            <button type="button" id="btn_utxo" class="cbtn hide">
-                <span>Get UTXO</span>
-            </button>
             <button type="button" id="btn_refresh" class="cbtn">
                 <span>Refresh</span>
             </button>
             <textarea id="result" class="hide"></textarea>
             <div class="crow">
                 <span>priv key WIF</span>
-                <input type="password" id="dummy" class="dummy" value="" />
-                <input type="password" id="dummy2" class="dummy" value="" />
-                <input type="password" id="xpc_priv" value="" />
-            </div>
-            <div class="crow u-mode u-mode-justifier hide">
-                <span>supp. priv key WIF</span>
-                <input type="password" id="dummy3" class="dummy" value="" />
-                <input type="password" id="dummy4" class="dummy" value="" />
-                <input type="password" id="xpc_priv_sup" value="" />
+                <input type="text" id="xpc_priv" value="" />
             </div>
             <div class="cbtns">
                 <button type="button" id="btn_impkey" class="cbtn warn">
