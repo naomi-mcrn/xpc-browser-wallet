@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>XPC Browser Wallet</title>
+    <link rel="stylesheet" href="css/wallet.css" />
+</head>
+<body>
+    <div id="container">
+        <header>
+            <h1>XPC Browser Wallet<span class="ver">ver -.-.- ***</span></h1>
+            <p>this is serverless insight-dependent wallet<em><br /><b>USE AT YOUR OWN RISK!!</b></em> <a id="insight_url" href="#" class="hide">Insight</a></p>
+        </header>
+        <div id="content">
+            <div class="crow hide">
+                <span>insight API</span>
+                <input type="text" id="insight_api_url" value="" />
+            </div>
+            <div class="crow">
+                <span>address</span>
+                <input type="text" id="xpc_addr" value="" readonly="readonly" />
+            </div>
+            <div class="crow">
+                <span>balance</span>
+                <input type="text" id="xpc_bal" class="numeric large" value="-.----" readonly="readonly" />
+                <span>XPC</span>
+            </div>
+            <div class="crow u-mode u-mode-justifier hide">
+                <span>supp. address</span>
+                <input type="text" id="xpc_addr_supp" value="" />
+            </div>
+            <div class="crow hide">
+            	<span>mode</span>
+                <input type="radio" name="mode" value="simple" id="mode_simple" checked="checked" />
+                <label for="mode_simple">Simple</label>
+                <input type="radio" name="mode" value="splitter" id="mode_splitter" />
+                <label for="mode_splitter">Splitter</label>
+                <input type="radio" name="mode" value="justifier" id="mode_justifier" />
+                <label for="mode_justifier">Justifier</label>
+            </div>
+            <button type="button" id="btn_utxo" class="cbtn hide">
+                <span>Get UTXO</span>
+            </button>
+            <button type="button" id="btn_refresh" class="cbtn">
+                <span>Refresh</span>
+            </button>
+            <textarea id="result" class="hide"></textarea>
+            <div class="crow">
+                <span>priv key WIF</span>
+                <input type="password" id="dummy" class="dummy" value="" />
+                <input type="password" id="dummy2" class="dummy" value="" />
+                <input type="password" id="xpc_priv" value="" />
+            </div>
+            <div class="crow u-mode u-mode-justifier hide">
+                <span>supp. priv key WIF</span>
+                <input type="password" id="dummy3" class="dummy" value="" />
+                <input type="password" id="dummy4" class="dummy" value="" />
+                <input type="password" id="xpc_priv_sup" value="" />
+            </div>
+            <div class="cbtns">
+                <button type="button" id="btn_impkey" class="cbtn warn">
+                    <span>Import Key</span>
+                </button>
+                <button type="button" id="btn_loadkey" class="cbtn">
+                    <span>Load Key</span>
+                </button>
+                <button type="button" id="btn_dumpkey" class="cbtn warn">
+                    <span>Dump Key</span>
+                </button>
+            </div>
+            <div class="cbtns">
+                <button type="button" id="btn_delkey" class="cbtn">
+                    <span>Discard Key</span>
+                </button>
+                <button type="button" id="btn_savekey" class="cbtn">
+                    <span>Save Key</span>
+                </button>
+                <button type="button" id="btn_genkey" class="cbtn">
+                    <span>Generate Key</span>
+                </button>
+            </div>
+            <div class="crow u-mode u-mode-simple u-mode-splitter hide">
+                <span>input UTXO(index or JSON)</span>
+                <input type="text" id="xpc_utxo" value="" />
+            </div>
+            <div class="crow u-mode u-mode-simple u-mode-splitter hide">
+                <span>send to</span>
+                <input type="text" id="xpc_to" value="" />
+            </div>
+            <div class="crow hide">
+                <span id="xpc_amount_title">amount(XPC)</span>
+                <input type="text" id="xpc_amount" value="" />
+               <input type="checkbox" id="xpc_infee" class="u-mode u-mode-simple" />
+               <label for="xpc_infee" class="u-mode u-mode-simple nogrow">include fee</label>                
+            </div>
+            <div class="crow u-mode u-mode-splitter hide">
+                <span>count</span>
+                <input type="text" id="xpc_count" value="1" />
+            </div>
+            <div class="crow hide">
+                <span>extra data(optional)</span>
+                <input type="text" id="extra_data" value="" />
+            </div>
+            <button type="button" id="btn_sendtx" class="cbtn hide">
+                <span>Send XPC!</span>
+            </button>
+        </div>
+        <!-- libs -->
+        <script src="./js/jquery-1.12.4.min.js"></script>
+        <script src="./js/xpchain-bundled.js"></script>
+        <script src="./js/aes.js"></script>
+        <script src="./js/pbkdf2.js"></script>
+        <!-- apps - configure first! -->
+        <script src="./js/config.js"></script>
+        <script src="./js/wallet.js"></script>
+    </div>
+</body>
+</html>
