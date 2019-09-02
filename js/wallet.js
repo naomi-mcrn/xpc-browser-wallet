@@ -53,6 +53,7 @@ $(document).ready(function () {
   var btn_loadkey = $("#btn_loadkey");
   var btn_savekey = $("#btn_savekey");
   var btn_dumpkey = $("#btn_dumpkey");
+  var btn_dumpwallet = $("#btn_dumpwallet");
   var btn_genkey = $("#btn_genkey");
   var btn_sendtx = $("#btn_sendtx");
   var rdo_modes = $("input[name=mode]");
@@ -187,10 +188,12 @@ $(document).ready(function () {
 
       $.ajax({
         type: 'GET',
-        url: insight_api_url.val() + 'addr/' + addr + '/balance',
+        url: insight_api_url.val() + 'addr/' + addr + '?noTxList=1',
         dataType: 'json',
       }).done(function (json) {
-        var tmpval = json;
+        console.log("refresh " + addr);
+        console.dir(json);
+        var tmpval = json["balanceSat"];
         tmpval = parseInt(tmpval);
         if (isNaN(tmpval) || !isFinite(tmpval)) {
           throw new Error("insight returned no numeric value! " + JSON.stringify(json));
@@ -225,7 +228,7 @@ $(document).ready(function () {
     keyPair = null;
     key_unloaded();
   });
-  btn_loadkey.click(function () {
+  btn_loadkey.click(async function () {
     try {
       if (keyPair !== null) {
         if (!confirm("key is already loaded. discard it?")) {
@@ -241,18 +244,35 @@ $(document).ready(function () {
           var key = strg_data_obj.key;
           var ei = strg_data_obj.enc_info;
           try {
-            if (!enc) {
-              keyPair = XPChain.ECPair.fromWIF(
-                key, window.XPCW.network);
-            } else {
+            if (enc) {
               var salt = CryptoJS.enc.Hex.parse(ei.salt);
               var iv = CryptoJS.enc.Hex.parse(ei.iv);
-              var pass = prompt("input passphrase", "");
-              if (pass == null || pass == "") {
+                
+              const { value: password } = await Swal.fire({
+                title: 'passphrase for decrypt wallet',
+                input: 'password',
+                inputPlaceholder: 'Enter passphrase...',
+                inputAttributes: {
+                  maxlength: 64,
+                  autocapitalize: 'off',
+                  autocorrect: 'off'
+                }
+              })
+
+              if (!password) {
                 throw new Error("bad passphrase(empty)");
               }
-              //todo continue...
+
+              var encrypted_data = CryptoJS.enc.Base64.parse(key);
+              var secret_passphrase = CryptoJS.enc.Utf8.parse(password);
+              var key128Bits500Iterations = CryptoJS.PBKDF2(secret_passphrase, salt, 
+                {keySize: 128 / 8, iterations: 500 });
+              var options = {iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7};
+              key = CryptoJS.AES.decrypt({"ciphertext":encrypted_data}, key128Bits500Iterations, options);
+              key = key.toString(CryptoJS.enc.Utf8);
             }
+            keyPair = XPChain.ECPair.fromWIF(
+              key, window.XPCW.network);
             key_loaded();
           } catch (e) {
             throw new Error("key load failure: " + e.toString());
@@ -267,13 +287,51 @@ $(document).ready(function () {
       alert(e.toString());
     }
   });
-  btn_savekey.click(function () {
+  btn_savekey.click(async function () {
+    const { value: password } = await Swal.fire({
+      title: 'passphrase for encrypt wallet',
+      input: 'password',
+      inputPlaceholder: 'Enter passphrase...',
+      inputAttributes: {
+        maxlength: 64,
+        autocapitalize: 'off',
+        autocorrect: 'off'
+      }
+    })
+
+    var saveEnc = false;
+    var saveKey = null;
+    var savesalt = null;
+    var saveiv = null;
+
+    if (password){
+      console.log("save encrypted wallet");
+      var secret_passphrase = CryptoJS.enc.Utf8.parse(password);
+      var salt = CryptoJS.lib.WordArray.random(128 / 8);
+      var key128Bits500Iterations =
+          CryptoJS.PBKDF2(secret_passphrase, salt, {keySize: 128 / 8, iterations: 500 });
+      var iv = CryptoJS.lib.WordArray.random(128 / 8);
+      var options = {iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7};
+      var message_text = CryptoJS.enc.Utf8.parse(keyPair.toWIF());
+      var encrypted = CryptoJS.AES.encrypt(message_text, key128Bits500Iterations, options);
+
+      saveKey = encrypted.toString();
+      savesalt = CryptoJS.enc.Hex.stringify(salt);
+      saveiv = CryptoJS.enc.Hex.stringify(iv);
+
+      saveEnc = true;
+    }else{
+      console.log("save plain wallet");
+      saveKey = keyPair.toWIF();
+    }
+
     strg_data_obj = {
       version: strg_data_ver,
-      encrypted: false,
-      key: keyPair.toWIF(),
-      enc_info: { salt: null, iv: null }
+      encrypted: saveEnc,
+      key: saveKey,
+      enc_info: { salt: savesalt, iv: saveiv }
     }
+    console.dir(strg_data_obj);
     strg_data_str = JSON.stringify(strg_data_obj);
     strg.setItem(strg_key, strg_data_str);
     b(btn_loadkey, true);
@@ -288,6 +346,25 @@ $(document).ready(function () {
       alert(e.toString());
     }
   });
+  btn_dumpwallet.click(function(){
+    try{
+      strg_data_str = strg.getItem(strg_key);
+      strg_data_obj = JSON.parse(strg_data_str);
+
+      Swal.fire({
+        title: 'dump wallet',
+        input: 'textarea',
+        inputValue: strg_data_str
+      })
+    }catch(e){
+      Swal.fire({
+        title: 'no wallet!',
+        text: 'any valid wallet data doesn\'t exist.',
+        type: 'warning'
+      });
+    }
+  });
+
   btn_genkey.click(function () {
     if (!confirm("currently, generate new key is EXPERIMETAL and DANGEROUS!! (weak randomness). are you ok?")) {
       return false;
