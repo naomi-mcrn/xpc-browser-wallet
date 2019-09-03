@@ -384,9 +384,6 @@ $(document).ready(function () {
   });
 
   btn_genkey.click(function () {
-    if (!confirm("currently, generate new key is EXPERIMETAL and DANGEROUS!! (weak randomness). are you ok?")) {
-      return false;
-    }
     try {
       if (keyPair !== null) {
         if (!confirm("key is already loaded. discard it?")) {
