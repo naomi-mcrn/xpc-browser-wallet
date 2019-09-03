@@ -47,6 +47,7 @@ $(document).ready(function () {
 
   var version_label = $("span.ver");
   var insight_link = $("#insight_url");
+  var btn_addr_qr = $("#btn_addr_qr");
   var btn_refresh = $("#btn_refresh");
   var btn_impkey = $("#btn_impkey");
   var btn_delkey = $("#btn_delkey");
@@ -175,6 +176,23 @@ $(document).ready(function () {
     b(btn_utxo, true);
   });
   */
+
+  btn_addr_qr.click(function(){
+    var addr = $.trim(xpc_addr.val());
+    if (addr === "") {
+      alert("address is empty!");
+      return false;
+    }
+    var qrhtml = $("<div class='qrcode'></div><span class='qraddr'>" + addr + "</span>");
+    Swal.fire({
+      title: 'deposit address',
+      html: qrhtml,
+      onRender: () => {
+        $(".qrcode").qrcode({width: 256, height: 256, text: addr});
+      }
+    });
+    
+  });
 
   btn_refresh.click(function () {
     var addr = $.trim(xpc_addr.val());
