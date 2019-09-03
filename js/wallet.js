@@ -77,7 +77,7 @@ $(document).ready(function () {
   var strg_data_ver = 1;
 
   var RETRY_LOOP = 10;
-  var VERSION_STR = "0.0.1 dev";
+  var VERSION_STR = "0.0.2 dev";
   var network_name = "mainnet";
   if (window.XPCW.network === XPChain.networks.testnet) {
     network_name = "testnet";
