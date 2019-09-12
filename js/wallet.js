@@ -5,8 +5,8 @@ $(document).ready(function () {
   var version = {
     major: 0,
     minor: 0,
-    revision: 4,
-    build: 4,
+    revision: 5,
+    build: 2,
     channel: "dev"
   }
   var version_str = "" + version.major + "." + version.minor + "." + version.revision;
