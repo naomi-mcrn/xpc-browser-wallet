@@ -2,66 +2,48 @@
 "use strict";
 $(document).ready(function () {
   //#### VERSION ####
-  const VERSION_STR = "0.0.3 dev";
+  var version_str = "0.0.3 dev";
   //below structure is prepared for future use.
-  const VERSION = {
+  var version = {
     major: 0,
     minor: 0,
     revision: 3,
-    build: 1
+    build: 2
   }
 
   //#### CHAINPARAM ####
   const COINBASE_MIN_CONF = 101;
+  const RETRY_LOOP = 10; //todo remove this
+  var network_name = "mainnet";
 
   //#### TRANSACTION ####
 
 
   //#### WALLET ####
-
-  //#### UTILITY ####
-
-  //#### UI FUNCTIONS ####
-
-  //#### UI HANDLERS ####
   var keyPair = null;
   var recentUTXO = [];//todo will be remove
 
+  var strg = window.localStorage;
+  var strg_key = "xpc_browser_wallet";
+  var strg_data_str = null;
+  var strg_data_obj = null;
+  var strg_data_ver = 1;
 
-
-  function r(s, apnd) {
-    if (apnd === true) {
-      result.val(result.val() + "\n" + s)
-    } else {
-      result.val(s);
-    }
-  }
-
-  function b(o, i) {
-    if (i) {
-      o.prop("disabled", false);
-    } else {
-      o.prop("disabled", true);
-    }
-  }
-
+  //#### UTILITY ####
   function xpc_to_mocha(v) {
     return Math.round(v * 10000);
   }
 
-  var key_loaded = function () {
-    xpc_addr.val(XPChain.payments.p2wpkh({ pubkey: keyPair.publicKey, network: window.XPCW.network }).address);
-    b(btn_delkey, true);
-    b(btn_sendtx, true);
-    b(btn_savekey, true);
-    b(btn_dumpkey, true);
-  }
-  var key_unloaded = function () {
-    b(btn_delkey, false);
-    b(btn_sendtx, false);
-    b(btn_savekey, false);
-    b(btn_dumpkey, false);
-  }
+  //#### UI COMPONENTS ####
+
+  const CONTROLS = {
+    btn: {
+      test: $("#btn_test")
+    },
+    plc:{
+      script_dynload: $("#script_dynamic_loading")
+    }
+  };
 
   var version_label = $("span.ver");
   var insight_link = $("#insight_url");
@@ -87,103 +69,40 @@ $(document).ready(function () {
   var xpc_amount_title = $("#xpc_amount_title");
   var xpc_count = $("#xpc_count");
   var extra_data = $("#extra_data");
-  var strg = window.localStorage;
-  var strg_key = "xpc_browser_wallet";
-  var strg_data_str = null;
-  var strg_data_obj = null;
-  var strg_data_ver = 1;
 
-  var RETRY_LOOP = 10;
-  var network_name = "mainnet";
-  if (window.XPCW.network === XPChain.networks.testnet) {
-    network_name = "testnet";
-    VERSION_STR += "(testnet2)";
-    strg_key += "_testnet";
-  }
-  version_label.text(VERSION_STR);
-  insight_link.attr("href", window.XPCW.insight_urls[network_name]);
-  insight_api_url.val(window.XPCW.insight_api_urls[network_name]);
-  //default setting
-  if (window.XPCW.defaults && window.XPCW.defaults[network_name]) {
-    if (window.XPCW.defaults[network_name].to) {
-      xpc_to.val(window.XPCW.defaults[network_name].to);
-    }
-    if (window.XPCW.defaults[network_name].amount) {
-      xpc_amount.val(window.XPCW.defaults[network_name].amount);
-    }
-    if (window.XPCW.defaults[network_name].count >= 1) {
-      xpc_count.val(window.XPCW.defaults[network_name].count);
-    }
-    if (window.XPCW.defaults[network_name].infee === true) {
-      xpc_infee.prop("checked", true).attr("checked", "checked");
+
+  //#### UI FUNCTIONS ####
+  function r(s, apnd) {
+    if (apnd === true) {
+      result.val(result.val() + "\n" + s)
+    } else {
+      result.val(s);
     }
   }
 
-  b(btn_delkey, false);
-  b(btn_sendtx, false);
-  b(btn_savekey, false);
-  b(btn_dumpkey, false);
-  strg_data_str = strg.getItem(strg_key);
-  if (strg_data_str !== null) {
-    try {
-      strg_data_obj = JSON.parse(strg_data_str);
-    } catch (e) {
-      strg_data_obj = null;
+  function b(o, i) {
+    if (i) {
+      o.prop("disabled", false);
+    } else {
+      o.prop("disabled", true);
     }
   }
-  if (strg_data_obj === null || strg_data_obj.version < strg_data_ver) {
-    b(btn_loadkey, false);
+
+  var key_loaded = function () {
+    xpc_addr.val(XPChain.payments.p2wpkh({ pubkey: keyPair.publicKey, network: window.XPCW.network }).address);
+    b(btn_delkey, true);
+    b(btn_sendtx, true);
+    b(btn_savekey, true);
+    b(btn_dumpkey, true);
+  }
+  var key_unloaded = function () {
+    b(btn_delkey, false);
+    b(btn_sendtx, false);
+    b(btn_savekey, false);
+    b(btn_dumpkey, false);
   }
 
-  /*
-  btn_utxo.click(function () {
-    var addr = $.trim(xpc_addr.val());
-    if (addr === "") {
-      alert("address is empty!");
-      return false;
-    }
-
-    b(btn_utxo, false);
-    try {
-      r("please wait...");
-      recentUTXO = [];
-      xpc_utxo.val("");
-
-      $.ajax({
-        type: 'GET',
-        url: insight_api_url.val() + 'addr/' + addr + '/utxoExt',
-        dataType: 'json',
-      }).done(function (json) {
-        if (!Array.isArray(json)) {
-          throw "result not Array. insight version mismatch?";
-        }
-        var i;
-        var res = "";
-        var amnt_total = 0;
-        var amnt_nojust = 0;
-        var is_coinbase = false;
-        var nojust_txidxs = [];
-        var justamnt = parseInt(xpc_amount.val());
-        for (i = 0; i < json.length; i++) {
-          is_coinbase = json[i].isCoinBase;
-          if ((is_coinbase && json[i].confirmations >= COINBASE_MIN_CONF) || (!is_coinbase && json[i].confirmations >= window.XPCW.min_conf)) {
-            if (res !== "") { res += "\n"; }
-            res += "UTXO #" + i + "\n" + JSON.stringify(json[i]) + "\n";
-          }
-        }
-        r(res);
-        xpc_utxo.val("0");
-
-        recentUTXO = json;
-      }).fail(function (xhr, tstat, err) {
-        r("Get UTXO failed. " + tstat + ": " + err + " [" + xhr.responseText + "]");
-      });
-    } catch (e) {
-      r("error: " + e);
-    }
-    b(btn_utxo, true);
-  });
-  */
+  //#### UI HANDLERS ####
 
   btn_addr_qr.click(function () {
     var addr = $.trim(xpc_addr.val());
@@ -233,7 +152,6 @@ $(document).ready(function () {
     }
     b(btn_refresh, true);
   });
-
 
   btn_impkey.click(function () {
     try {
@@ -616,4 +534,132 @@ $(document).ready(function () {
       if (!ajaxed) { b(btn_sendtx, true); }
     }
   });
+
+  //version checked
+  CONTROLS.plc.script_dynload.on("ver_fetched",function(e,data){
+    console.log("script dynamically loaded.");
+    console.log(window.XPCW.latest_version);
+    if (version.major < window.XPCW.latest_version.major ||
+      version.minor < window.XPCW.latest_version.minor || 
+      version.revision < window.XPCW.latest_version.revision || 
+      version.build < window.XPCW.latest_version.build){
+        Swal.fire({
+          title: "update notice",
+          text: "new version found. update now?",
+          showCancelButton: true
+        }).then((result) => {
+          if (result.value){
+            window.location.reload(true);
+          }
+        })
+      }
+  });
+
+  CONTROLS.btn.test.click(function(e){
+    console.log("script dynamically loading");
+    var ts = Date.now();
+    //var s = $("<script id='scr_ver_fetch' src='./version.js?ts=" + ts + "'></script>");
+    //s.appendTo(CONTROLS.plc.script_dynload);
+    var se = document.createElement("script");
+    se.src = "./js/version.js?ts=" + ts;
+    se.id = "scr_ver_fetch";
+    document.getElementById(CONTROLS.plc.script_dynload.prop("id")).appendChild(se);
+  });
+
+
+  //#### INITIALIZE ####
+  (function(){
+    if (window.XPCW.network === XPChain.networks.testnet) {
+      network_name = "testnet";
+      version_str += "(testnet)";
+      strg_key += "_testnet";
+    }
+
+    version_label.text(version_str);
+    insight_link.attr("href", window.XPCW.insight_urls[network_name]);
+    insight_api_url.val(window.XPCW.insight_api_urls[network_name]);
+    //default setting
+    if (window.XPCW.defaults && window.XPCW.defaults[network_name]) {
+      if (window.XPCW.defaults[network_name].to) {
+        xpc_to.val(window.XPCW.defaults[network_name].to);
+      }
+      if (window.XPCW.defaults[network_name].amount) {
+        xpc_amount.val(window.XPCW.defaults[network_name].amount);
+      }
+      if (window.XPCW.defaults[network_name].count >= 1) {
+        xpc_count.val(window.XPCW.defaults[network_name].count);
+      }
+      if (window.XPCW.defaults[network_name].infee === true) {
+        xpc_infee.prop("checked", true).attr("checked", "checked");
+      }
+    }
+  
+    b(btn_delkey, false);
+    b(btn_sendtx, false);
+    b(btn_savekey, false);
+    b(btn_dumpkey, false);
+    strg_data_str = strg.getItem(strg_key);
+    if (strg_data_str !== null) {
+      try {
+        strg_data_obj = JSON.parse(strg_data_str);
+      } catch (e) {
+        strg_data_obj = null;
+      }
+    }
+    if (strg_data_obj === null || strg_data_obj.version < strg_data_ver) {
+      b(btn_loadkey, false);
+    }  
+  })();
+
+  /*
+  btn_utxo.click(function () {
+    var addr = $.trim(xpc_addr.val());
+    if (addr === "") {
+      alert("address is empty!");
+      return false;
+    }
+
+    b(btn_utxo, false);
+    try {
+      r("please wait...");
+      recentUTXO = [];
+      xpc_utxo.val("");
+
+      $.ajax({
+        type: 'GET',
+        url: insight_api_url.val() + 'addr/' + addr + '/utxoExt',
+        dataType: 'json',
+      }).done(function (json) {
+        if (!Array.isArray(json)) {
+          throw "result not Array. insight version mismatch?";
+        }
+        var i;
+        var res = "";
+        var amnt_total = 0;
+        var amnt_nojust = 0;
+        var is_coinbase = false;
+        var nojust_txidxs = [];
+        var justamnt = parseInt(xpc_amount.val());
+        for (i = 0; i < json.length; i++) {
+          is_coinbase = json[i].isCoinBase;
+          if ((is_coinbase && json[i].confirmations >= COINBASE_MIN_CONF) || (!is_coinbase && json[i].confirmations >= window.XPCW.min_conf)) {
+            if (res !== "") { res += "\n"; }
+            res += "UTXO #" + i + "\n" + JSON.stringify(json[i]) + "\n";
+          }
+        }
+        r(res);
+        xpc_utxo.val("0");
+
+        recentUTXO = json;
+      }).fail(function (xhr, tstat, err) {
+        r("Get UTXO failed. " + tstat + ": " + err + " [" + xhr.responseText + "]");
+      });
+    } catch (e) {
+      r("error: " + e);
+    }
+    b(btn_utxo, true);
+  });
+  */
+
+
 });

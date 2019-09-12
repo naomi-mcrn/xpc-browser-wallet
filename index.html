@@ -89,17 +89,27 @@
             <button type="button" id="btn_sendtx" class="cbtn hide">
                 <span>Send XPC!</span>
             </button>
+            <button type="button" id="btn_sendtx" class="cbtn hide">
+                <span>Send XPC!</span>
+            </button>
+            <button type="button" id="btn_test" class="cbtn">
+                <span>test</span>
+            </button>
         </div>
-        <!-- libs -->
-        <script src="./js/sweetalert2.js"></script>
-        <script src="./js/jquery-1.12.4.min.js"></script>
-        <script src="./js/xpchain-bundled.js"></script>
-        <script src="./js/aes.js"></script>
-        <script src="./js/pbkdf2.js"></script>
-        <script src="./js/jquery.qrcode.min.js"></script>
-        <!-- apps - configure first! -->
-        <script src="./js/config.js"></script>
-        <script src="./js/wallet.js"></script>
+        <div id="script_loading" class="hide">
+            <!-- libs -->
+            <script src="./js/sweetalert2.js"></script>
+            <script src="./js/jquery-1.12.4.min.js"></script>
+            <script src="./js/xpchain-bundled.js"></script>
+            <script src="./js/aes.js"></script>
+            <script src="./js/pbkdf2.js"></script>
+            <script src="./js/jquery.qrcode.min.js"></script>
+            <!-- apps - configure first! -->
+            <script src="./js/config.js"></script>
+            <script src="./js/wallet.js"></script>
+            <div id="script_dynamic_loading">                
+            </div>
+        </div>
     </div>
 </body>
 </html>
