@@ -1,11 +1,33 @@
 ///<reference path="./jquery-1.12.4.min.js" />
 "use strict";
 $(document).ready(function () {
-  var keyPair = null;
-  var recentUTXO = [];
-  var mode = "simple";
+  //#### VERSION ####
+  const VERSION_STR = "0.0.3 dev";
+  //below structure is prepared for future use.
+  const VERSION = {
+    major: 0,
+    minor: 0,
+    revision: 3,
+    build: 1
+  }
 
-  var COINBASE_MIN_CONF = window.XPCW.coinbase_min_conf || 101;
+  //#### CHAINPARAM ####
+  const COINBASE_MIN_CONF = 101;
+
+  //#### TRANSACTION ####
+
+
+  //#### WALLET ####
+
+  //#### UTILITY ####
+
+  //#### UI FUNCTIONS ####
+
+  //#### UI HANDLERS ####
+  var keyPair = null;
+  var recentUTXO = [];//todo will be remove
+
+
 
   function r(s, apnd) {
     if (apnd === true) {
@@ -21,10 +43,6 @@ $(document).ready(function () {
     } else {
       o.prop("disabled", true);
     }
-  }
-
-  function change_mode() {
-    //todo remove this
   }
 
   function xpc_to_mocha(v) {
@@ -57,7 +75,6 @@ $(document).ready(function () {
   var btn_dumpwallet = $("#btn_dumpwallet");
   var btn_genkey = $("#btn_genkey");
   var btn_sendtx = $("#btn_sendtx");
-  var rdo_modes = $("input[name=mode]");
   var result = $("#result");
   var insight_api_url = $("#insight_api_url");
   var xpc_addr = $("#xpc_addr");
@@ -77,7 +94,6 @@ $(document).ready(function () {
   var strg_data_ver = 1;
 
   var RETRY_LOOP = 10;
-  var VERSION_STR = "0.0.2 dev";
   var network_name = "mainnet";
   if (window.XPCW.network === XPChain.networks.testnet) {
     network_name = "testnet";
@@ -95,11 +111,6 @@ $(document).ready(function () {
     if (window.XPCW.defaults[network_name].amount) {
       xpc_amount.val(window.XPCW.defaults[network_name].amount);
     }
-    /*
-    if (window.XPCW.defaults[network_name].mode){
-      mode = window.XPCW.defaults[network_name].mode;
-    }
-    */
     if (window.XPCW.defaults[network_name].count >= 1) {
       xpc_count.val(window.XPCW.defaults[network_name].count);
     }
@@ -107,9 +118,6 @@ $(document).ready(function () {
       xpc_infee.prop("checked", true).attr("checked", "checked");
     }
   }
-  rdo_modes.prop("checked", false).removeAttr("checked");
-  $("#mode_" + mode).prop("checked", true).attr("checked", "checked");
-  change_mode();
 
   b(btn_delkey, false);
   b(btn_sendtx, false);
@@ -177,7 +185,7 @@ $(document).ready(function () {
   });
   */
 
-  btn_addr_qr.click(function(){
+  btn_addr_qr.click(function () {
     var addr = $.trim(xpc_addr.val());
     if (addr === "") {
       alert("address is empty!");
@@ -188,10 +196,10 @@ $(document).ready(function () {
       title: 'deposit address',
       html: qrhtml,
       onRender: () => {
-        $(".qrcode").qrcode({width: 256, height: 256, text: addr});
+        $(".qrcode").qrcode({ width: 256, height: 256, text: addr });
       }
     });
-    
+
   });
 
   btn_refresh.click(function () {
@@ -265,7 +273,7 @@ $(document).ready(function () {
             if (enc) {
               var salt = CryptoJS.enc.Hex.parse(ei.salt);
               var iv = CryptoJS.enc.Hex.parse(ei.iv);
-                
+
               const { value: password } = await Swal.fire({
                 title: 'passphrase for decrypt wallet',
                 input: 'password',
@@ -283,10 +291,10 @@ $(document).ready(function () {
 
               var encrypted_data = CryptoJS.enc.Base64.parse(key);
               var secret_passphrase = CryptoJS.enc.Utf8.parse(password);
-              var key128Bits500Iterations = CryptoJS.PBKDF2(secret_passphrase, salt, 
-                {keySize: 128 / 8, iterations: 500 });
-              var options = {iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7};
-              key = CryptoJS.AES.decrypt({"ciphertext":encrypted_data}, key128Bits500Iterations, options);
+              var key128Bits500Iterations = CryptoJS.PBKDF2(secret_passphrase, salt,
+                { keySize: 128 / 8, iterations: 500 });
+              var options = { iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 };
+              key = CryptoJS.AES.decrypt({ "ciphertext": encrypted_data }, key128Bits500Iterations, options);
               key = key.toString(CryptoJS.enc.Utf8);
             }
             keyPair = XPChain.ECPair.fromWIF(
@@ -322,14 +330,14 @@ $(document).ready(function () {
     var savesalt = null;
     var saveiv = null;
 
-    if (password){
+    if (password) {
       console.log("save encrypted wallet");
       var secret_passphrase = CryptoJS.enc.Utf8.parse(password);
       var salt = CryptoJS.lib.WordArray.random(128 / 8);
       var key128Bits500Iterations =
-          CryptoJS.PBKDF2(secret_passphrase, salt, {keySize: 128 / 8, iterations: 500 });
+        CryptoJS.PBKDF2(secret_passphrase, salt, { keySize: 128 / 8, iterations: 500 });
       var iv = CryptoJS.lib.WordArray.random(128 / 8);
-      var options = {iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7};
+      var options = { iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 };
       var message_text = CryptoJS.enc.Utf8.parse(keyPair.toWIF());
       var encrypted = CryptoJS.AES.encrypt(message_text, key128Bits500Iterations, options);
 
@@ -338,7 +346,7 @@ $(document).ready(function () {
       saveiv = CryptoJS.enc.Hex.stringify(iv);
 
       saveEnc = true;
-    }else{
+    } else {
       console.log("save plain wallet");
       saveKey = keyPair.toWIF();
     }
@@ -364,8 +372,8 @@ $(document).ready(function () {
       alert(e.toString());
     }
   });
-  btn_dumpwallet.click(function(){
-    try{
+  btn_dumpwallet.click(function () {
+    try {
       strg_data_str = strg.getItem(strg_key);
       strg_data_obj = JSON.parse(strg_data_str);
 
@@ -374,7 +382,7 @@ $(document).ready(function () {
         input: 'textarea',
         inputValue: strg_data_str
       })
-    }catch(e){
+    } catch (e) {
       Swal.fire({
         title: 'no wallet!',
         text: 'any valid wallet data doesn\'t exist.',
@@ -404,16 +412,7 @@ $(document).ready(function () {
     var ajaxed = false;
     b(btn_sendtx, false);
     try {
-      var count = -1;
-      switch (mode) {
-        case "simple":
-          count = 1;
-          break;
-        case "splitter":
-          count = parseInt(xpc_count.val());
-          break;
-      }
-
+      var count = 1;
       var amount_send = parseFloat(xpc_amount.val());
       var whole_amount;
       var toaddr = $.trim(xpc_to.val());
@@ -429,8 +428,6 @@ $(document).ready(function () {
       amount_send = xpc_to_mocha(amount_send) / 10000;
       xpc_amount.val(amount_send);
       whole_amount = amount_send * count;
-
-
 
       var utxo_str = xpc_utxo.val();
       var utxo_idx = parseInt(utxo_str);
@@ -492,12 +489,10 @@ $(document).ready(function () {
           case "per":
             fee = Math.round((window.XPCW.fee * size) * 10.0) / 10000.0;
             feemsg = " [" + window.XPCW.fee + "/kB]";
-            if (mode === "simple") {
-              if (!xpc_infee.prop("checked")) {
-                feemsg += " total " + (fee + amount_send);
-              } else {
-                feemsg += " included";
-              }
+            if (!xpc_infee.prop("checked")) {
+              feemsg += " total " + (fee + amount_send);
+            } else {
+              feemsg += " included";
             }
             break;
           case "fix":
@@ -508,20 +503,12 @@ $(document).ready(function () {
         }
         var tmamnt = 0;//total amount (include fee)
         var tmsend = 0;//each send amount
-        switch (mode) {
-          case "simple":
-            if (xpc_infee.prop("checked")) {
-              tmsend = amount_send - fee;
-              tmamnt = amount_send;
-            } else {
-              tmsend = amount_send;
-              tmamnt = amount_send + fee;
-            }
-            break;
-          case "splitter":
-            tmsend = amount_send;
-            tmamnt = whole_amount + fee; //tmamnt must be equal or less than UTXO amount.
-            break;
+        if (xpc_infee.prop("checked")) {
+          tmsend = amount_send - fee;
+          tmamnt = amount_send;
+        } else {
+          tmsend = amount_send;
+          tmamnt = amount_send + fee;
         }
         var change;
         change = target_utxo_amount_sum - tmamnt;
@@ -537,12 +524,10 @@ $(document).ready(function () {
           } else {
             //set temp fee for recalculation...?
             fee = 0.0001;//1 mocha
-            if (mode === "simple") {
-              tmsend = target_utxo_amount_sum - fee;
-              if (tmsend > amount_send) {
-                fee += (tmsend - amount_send);
-                tmsend = amount_send;
-              }
+            tmsend = target_utxo_amount_sum - fee;
+            if (tmsend > amount_send) {
+              fee += (tmsend - amount_send);
+              tmsend = amount_send;
             }
             change = 0;
           }
@@ -605,15 +590,8 @@ $(document).ready(function () {
       }
 
       var tx = built_tx.toHex();
-      var sendmsg = "send \n\n"
-      switch (mode) {
-        case "simple":
-          sendmsg += amount_send + " XPC";
-          break;
-        case "splitter":
-          sendmsg += whole_amount + " XPC <@" + amount_send + " XPC * " + count + "> ";
-          break;
-      }
+      var sendmsg = "send \n\n";
+      sendmsg += amount_send + " XPC";
       sendmsg += "(with " + fee + " XPC fee" + feemsg + ")" + exmsg + "\n\nto\n\n" + toaddr + "\n\nproceed ok?"
       if (confirm(sendmsg) == false) {
         return false;
@@ -638,9 +616,4 @@ $(document).ready(function () {
       if (!ajaxed) { b(btn_sendtx, true); }
     }
   });
-
-  rdo_modes.change(function () {
-    mode = $(this).val();
-    change_mode();
-  })
 });
