@@ -5,7 +5,7 @@
         major: 0,
         minor: 0,
         revision: 5,
-        build: 3,
+        build: 4,
         channel: "dev",
         fetch_at: Date.now()
     }

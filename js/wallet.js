@@ -6,7 +6,7 @@ $(document).ready(function () {
     major: 0,
     minor: 0,
     revision: 5,
-    build: 3,
+    build: 4,
     channel: "dev"
   }
   var version_str = "" + version.major + "." + version.minor + "." + version.revision;
@@ -188,6 +188,8 @@ $(document).ready(function () {
 
       }).fail(function (xhr, tstat, err) {
         r("Refresh failed. " + tstat + ": " + err + " [" + xhr.responseText + "]");
+      }).always(function(){
+        b(btn_refresh, true);
       });
 
       /*
@@ -212,9 +214,9 @@ $(document).ready(function () {
       });
       */
     } catch (e) {
+      b(btn_refresh, true);
       r("error: " + e);
     }
-    b(btn_refresh, true);
   });
 
   btn_impkey.click(function () {
