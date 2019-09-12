@@ -2,13 +2,16 @@
 "use strict";
 $(document).ready(function () {
   //#### VERSION ####
-  var version_str = "0.0.3 dev";
-  //below structure is prepared for future use.
   var version = {
     major: 0,
     minor: 0,
-    revision: 3,
-    build: 2
+    revision: 4,
+    build: 3,
+    channel: "dev"
+  }
+  var version_str = "" + version.major + "." + version.minor + "." + version.revision;
+  if (version.channel){
+    version_str += " " + version.channel;
   }
 
   //#### CHAINPARAM ####
@@ -20,8 +23,17 @@ $(document).ready(function () {
 
 
   //#### WALLET ####
-  var keyPair = null;
-  var recentUTXO = [];//todo will be remove
+  var keyPair = null;//todo replace to WALLET.key
+  var recentUTXO = [];//todo replace to WALLET.utxo
+
+  const WALLET = {
+    key: null, //future use
+    utxo: [],//at least 1 conf
+    utxo_local: [],//no conf
+    balance: 0,//at least 1 conf, unit mocha
+    balance_local: 0,//no conf, unit mocha
+    sync_at: null
+  }
 
   var strg = window.localStorage;
   var strg_key = "xpc_browser_wallet";
@@ -34,11 +46,15 @@ $(document).ready(function () {
     return Math.round(v * 10000);
   }
 
+  function mocha_to_xpc(v){
+    return Math.floor(v) / 10000.0;
+  }
+
   //#### UI COMPONENTS ####
 
   const CONTROLS = {
     btn: {
-      test: $("#btn_test")
+      updchk: $("#btn_updchk")
     },
     plc:{
       script_dynload: $("#script_dynamic_loading")
@@ -133,6 +149,50 @@ $(document).ready(function () {
 
       $.ajax({
         type: 'GET',
+        url: insight_api_url.val() + 'addr/' + addr + '/utxoExt',
+        dataType: 'json',
+      }).done(function (json) {
+        if (!Array.isArray(json)) {
+          throw "result not Array. insight version mismatch?";
+        }
+        var i;
+        var res = "";
+        var amnt_total = 0;
+        var amnt_nojust = 0;
+        var is_coinbase = false;
+        var nojust_txidxs = [];
+        var justamnt = parseInt(xpc_amount.val());
+
+        WALLET.balance = 0;
+        WALLET.utxo = [];
+
+        //todo remove confirmed utxo from local tx and recalc balance_local
+
+        for (i = 0; i < json.length; i++) {
+          is_coinbase = json[i].isCoinBase;
+          if ((is_coinbase && json[i].confirmations >= COINBASE_MIN_CONF) || (!is_coinbase && json[i].confirmations >= window.XPCW.min_conf)) {
+            WALLET.utxo.push({
+              txid: json[i].txid,
+              vout: json[i].vout,
+              ts: json[i].ts,
+              scriptPubKey: json[i].scriptPubKey,
+              amount: xpc_to_mocha(json[i].amount), // store by mocha unit.
+              confirmations: json[i].confirmations,
+              isCoinBase: json[i].isCoinBase
+            });
+            WALLET.balance += xpc_to_mocha(json[i].amount);
+          }
+        }
+
+        xpc_bal.val(mocha_to_xpc(WALLET.balance + WALLET.balance_local));
+
+      }).fail(function (xhr, tstat, err) {
+        r("Refresh failed. " + tstat + ": " + err + " [" + xhr.responseText + "]");
+      });
+
+      /*
+      $.ajax({
+        type: 'GET',
         url: insight_api_url.val() + 'addr/' + addr + '?noTxList=1',
         dataType: 'json',
       }).done(function (json) {
@@ -144,9 +204,13 @@ $(document).ready(function () {
           throw new Error("insight returned no numeric value! " + JSON.stringify(json));
         }
         xpc_bal.val(tmpval / 10000.0);
+
+
+
       }).fail(function (xhr, tstat, err) {
         r("Refresh failed. " + tstat + ": " + err + " [" + xhr.responseText + "]");
       });
+      */
     } catch (e) {
       r("error: " + e);
     }
@@ -555,7 +619,7 @@ $(document).ready(function () {
       }
   });
 
-  CONTROLS.btn.test.click(function(e){
+  CONTROLS.btn.updchk.click(function(e){
     console.log("script dynamically loading");
     var ts = Date.now();
     //var s = $("<script id='scr_ver_fetch' src='./version.js?ts=" + ts + "'></script>");
@@ -609,6 +673,14 @@ $(document).ready(function () {
     if (strg_data_obj === null || strg_data_obj.version < strg_data_ver) {
       b(btn_loadkey, false);
     }  
+
+    if (window.XPCW.debug){
+      console.log("%cWARNING: debug mode is activated. it's risky and developers only. ","color: red;font-size: 20px;");
+      window.XPCW.DEBUG_VARS = {
+        WALLET: WALLET,
+        CONTROLS: CONTROLS
+      }
+    }
   })();
 
   /*

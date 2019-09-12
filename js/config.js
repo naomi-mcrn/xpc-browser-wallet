@@ -1,6 +1,10 @@
 "use strict";
 (function () {
     window.XPCW = window.XPCW || {};
+    Object.defineProperty(window.XPCW, 'debug', {
+        value: true,
+        writable: false
+    });//must be false. true is only for development!
     Object.defineProperty(window.XPCW, 'network', {
         value: XPChain.networks.xpchain,
         writable: false
@@ -13,11 +17,11 @@
 
     //insight urls (auto switch)
     window.XPCW.insight_urls = {
-        mainnet: "https://cvmu.jp/insight/xpc/",
+        mainnet: "https://insight.xpchain.io/",
         testnet: "https://cvmu.jp/insight/xpc-test/"
     }
     window.XPCW.insight_api_urls = {
-        mainnet: "https://cvmu.jp/insight/xpc/api/",
+        mainnet: "https://insight.xpchain.io/api/",
         testnet: "https://cvmu.jp/insight/xpc-test/api/"
     }
 
