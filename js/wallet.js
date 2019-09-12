@@ -6,7 +6,7 @@ $(document).ready(function () {
     major: 0,
     minor: 0,
     revision: 5,
-    build: 2,
+    build: 3,
     channel: "dev"
   }
   var version_str = "" + version.major + "." + version.minor + "." + version.revision;
@@ -622,7 +622,7 @@ $(document).ready(function () {
         text: "Already up to date."
       })
     }
-    b(CONTROLS.btn.updchk, false);
+    b(CONTROLS.btn.updchk, true);
   });
 
   CONTROLS.btn.updchk.click(function(e){
