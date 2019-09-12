@@ -6,7 +6,7 @@ $(document).ready(function () {
     major: 0,
     minor: 0,
     revision: 4,
-    build: 3,
+    build: 4,
     channel: "dev"
   }
   var version_str = "" + version.major + "." + version.minor + "." + version.revision;
@@ -607,23 +607,27 @@ $(document).ready(function () {
       version.minor < window.XPCW.latest_version.minor || 
       version.revision < window.XPCW.latest_version.revision || 
       version.build < window.XPCW.latest_version.build){
-        Swal.fire({
-          title: "update notice",
-          text: "new version found. update now?",
-          showCancelButton: true
-        }).then((result) => {
-          if (result.value){
-            window.location.reload(true);
-          }
-        })
-      }
+      Swal.fire({
+        title: "Update available",
+        text: "New version found. Update now?",
+        showCancelButton: true
+      }).then((result) => {
+        if (result.value) {
+          window.location.reload(true);
+        }
+      })
+    }else{
+      Swal.fire({
+        title: "Latest version",
+        text: "Already up to date."
+      })
+    }
+    b(CONTROLS.btn.updchk, false);
   });
 
   CONTROLS.btn.updchk.click(function(e){
-    console.log("script dynamically loading");
+    b(CONTROLS.btn.updchk,false);
     var ts = Date.now();
-    //var s = $("<script id='scr_ver_fetch' src='./version.js?ts=" + ts + "'></script>");
-    //s.appendTo(CONTROLS.plc.script_dynload);
     var se = document.createElement("script");
     se.src = "./js/version.js?ts=" + ts;
     se.id = "scr_ver_fetch";
