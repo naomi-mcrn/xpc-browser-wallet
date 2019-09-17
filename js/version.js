@@ -4,8 +4,8 @@
     window.XPCW.latest_version = {
         major: 0,
         minor: 0,
-        revision: 5,
-        build: 4,
+        revision: 6,
+        build: 1,
         channel: "dev",
         fetch_at: Date.now()
     }
