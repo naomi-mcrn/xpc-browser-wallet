@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>XPC Browser Wallet</title>
-    <link rel="stylesheet" href="css/wallet.css" />
+    <link rel="stylesheet" href="css/wallet.css?r=1" />
     <link rel="shortcut icon" href="./favicon.ico" type="image/vnd.microsoft.icon">
     <link rel="icon" href="./favicon.ico" type="image/vnd.microsoft.icon" />
     <link rel="icon" href="./favicon.png" type="image/png" />
@@ -14,7 +14,9 @@
     <div id="container">
         <header>
             <h1>XPC Browser Wallet<span class="ver">ver -.-.- ***</span></h1>
-            <p>this is serverless insight-dependent wallet<em><br /><b>USE AT YOUR OWN RISK!!</b></em> <a id="insight_url" href="#" class="hide">Insight</a></p>
+            <div class="hide">
+                <p>this is serverless insight-dependent wallet<em><br /><b>USE AT YOUR OWN RISK!!</b></em> <a id="insight_url" href="#" class="hide">Insight</a></p>
+            </div>
         </header>
         <div id="content">
             <div class="crow hide">
@@ -34,11 +36,6 @@
             <button type="button" id="btn_refresh" class="cbtn">
                 <span>Refresh</span>
             </button>
-            <textarea id="result" class="hide"></textarea>
-            <div class="crow">
-                <span>priv key WIF</span>
-                <input type="text" id="xpc_priv" value="" />
-            </div>
             <div class="cbtns">
                 <button type="button" id="btn_impkey" class="cbtn warn">
                     <span>Import Key</span>
@@ -68,11 +65,11 @@
                 <span>input UTXO(index or JSON)</span>
                 <input type="text" id="xpc_utxo" value="" />
             </div>
-            <div class="crow hide">
+            <div class="crow">
                 <span>send to</span>
                 <input type="text" id="xpc_to" value="" />
             </div>
-            <div class="crow hide">
+            <div class="crow">
                 <span id="xpc_amount_title">amount(XPC)</span>
                 <input type="text" id="xpc_amount" value="" />
                <input type="checkbox" id="xpc_infee" />
@@ -100,10 +97,17 @@
             <!-- libs -->
             <script src="./js/sweetalert2.js?r=1"></script>
             <script src="./js/jquery-1.12.4.min.js"></script>
+            <!-- 
             <script src="./js/xpchain-bundled.js?r=1"></script>
+            <script src="./js/bip38.js?r=1"></script> 
+            //-->
+            <script src="./js/xpchain-bundled.min.js?r=1"></script>
+            <script src="./js/bip38.min.js?r=1"></script>
             <script src="./js/aes.js?r=1"></script>
             <script src="./js/pbkdf2.js?r=1"></script>
             <script src="./js/jquery.qrcode.min.js?r=1"></script>
+            <script src="./js/jsQR.js?r=1"></script>  
+            <script src="./js/jsQR-supp.js?r=1"></script>   
             <!-- apps - configure first! -->
             <script src="./js/config.js?r=1"></script>
             <script src="./js/wallet.js?v=0.0.5&r=4&c=dev"></script>

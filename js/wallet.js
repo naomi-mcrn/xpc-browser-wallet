@@ -10,7 +10,7 @@ $(document).ready(function () {
     channel: "dev"
   }
   var version_str = "" + version.major + "." + version.minor + "." + version.revision;
-  if (version.channel){
+  if (version.channel) {
     version_str += " " + version.channel;
   }
 
@@ -46,7 +46,7 @@ $(document).ready(function () {
     return Math.round(v * 10000);
   }
 
-  function mocha_to_xpc(v){
+  function mocha_to_xpc(v) {
     return Math.floor(v) / 10000.0;
   }
 
@@ -56,7 +56,7 @@ $(document).ready(function () {
     btn: {
       updchk: $("#btn_updchk")
     },
-    plc:{
+    plc: {
       script_dynload: $("#script_dynamic_loading")
     }
   };
@@ -73,27 +73,26 @@ $(document).ready(function () {
   var btn_dumpwallet = $("#btn_dumpwallet");
   var btn_genkey = $("#btn_genkey");
   var btn_sendtx = $("#btn_sendtx");
-  var result = $("#result");
   var insight_api_url = $("#insight_api_url");
   var xpc_addr = $("#xpc_addr");
   var xpc_bal = $("#xpc_bal");
-  var xpc_priv = $("#xpc_priv");
   var xpc_utxo = $("#xpc_utxo");
   var xpc_to = $("#xpc_to");
   var xpc_infee = $("#xpc_infee");
   var xpc_amount = $("#xpc_amount");
-  var xpc_amount_title = $("#xpc_amount_title");
   var xpc_count = $("#xpc_count");
   var extra_data = $("#extra_data");
 
 
   //#### UI FUNCTIONS ####
   function r(s, apnd) {
+    /*
     if (apnd === true) {
       result.val(result.val() + "\n" + s)
     } else {
       result.val(s);
-    }
+    }*/
+    console.log(s);
   }
 
   function b(o, i) {
@@ -123,7 +122,11 @@ $(document).ready(function () {
   btn_addr_qr.click(function () {
     var addr = $.trim(xpc_addr.val());
     if (addr === "") {
-      alert("address is empty!");
+      Swal.fire({
+        title: 'Bad address',
+        type: 'warning',
+        text: 'address is empty!'
+      });
       return false;
     }
     var qrhtml = $("<div class='qrcode'></div><span class='qraddr'>" + addr + "</span>");
@@ -140,7 +143,11 @@ $(document).ready(function () {
   btn_refresh.click(function () {
     var addr = $.trim(xpc_addr.val());
     if (addr === "") {
-      alert("address is empty!");
+      Swal.fire({
+        title: 'Bad address',
+        type: 'warning',
+        text: 'address is empty!'
+      });
       return false;
     }
     b(btn_refresh, false);
@@ -188,51 +195,57 @@ $(document).ready(function () {
 
       }).fail(function (xhr, tstat, err) {
         r("Refresh failed. " + tstat + ": " + err + " [" + xhr.responseText + "]");
-      }).always(function(){
+      }).always(function () {
         b(btn_refresh, true);
       });
-
-      /*
-      $.ajax({
-        type: 'GET',
-        url: insight_api_url.val() + 'addr/' + addr + '?noTxList=1',
-        dataType: 'json',
-      }).done(function (json) {
-        console.log("refresh " + addr);
-        console.dir(json);
-        var tmpval = json["balanceSat"];
-        tmpval = parseInt(tmpval);
-        if (isNaN(tmpval) || !isFinite(tmpval)) {
-          throw new Error("insight returned no numeric value! " + JSON.stringify(json));
-        }
-        xpc_bal.val(tmpval / 10000.0);
-
-
-
-      }).fail(function (xhr, tstat, err) {
-        r("Refresh failed. " + tstat + ": " + err + " [" + xhr.responseText + "]");
-      });
-      */
     } catch (e) {
       b(btn_refresh, true);
       r("error: " + e);
     }
   });
 
-  btn_impkey.click(function () {
+  btn_impkey.click(async function () {
     try {
       if (keyPair !== null) {
-        if (!confirm("key is already loaded. discard it?")) {
+        const { value: discard_conf } = await Swal.fire({
+          title: 'Discard PrivKey',
+          text: 'key is already loaded. discard it?',
+          showCancelButton: true
+        });
+
+        if (!discard_conf) {
           return false;
         }
       }
-      keyPair = XPChain.ECPair.fromWIF(xpc_priv.val(), window.XPCW.network);
-      key_loaded();
+
+      keyPair = null;
+      key_unloaded();
+
+      const { value: privkey_wif } = await Swal.fire({
+        title: 'Import PrivKey(WIF)',
+        input: 'password',
+        inputPlaceholder: 'Enter WIF key...',
+        inputAttributes: {
+          maxlength: 53,
+          autocapitalize: 'off',
+          autocorrect: 'off'
+        }
+      });
+
+      if (privkey_wif) {
+        keyPair = XPChain.ECPair.fromWIF(privkey_wif, window.XPCW.network);
+        key_loaded();
+      }
     } catch (e) {
       keyPair = null;
-      alert(e.toString());
+      key_unloaded();
+
+      Swal.fire({
+        title: 'PrivKey import error',
+        type: 'error',
+        text: e.toString()
+      });
     }
-    xpc_priv.val("");
   });
   btn_delkey.click(function () {
     keyPair = null;
@@ -241,10 +254,18 @@ $(document).ready(function () {
   btn_loadkey.click(async function () {
     try {
       if (keyPair !== null) {
-        if (!confirm("key is already loaded. discard it?")) {
+        const { value: discard_conf } = await Swal.fire({
+          title: 'Discard PrivKey',
+          text: 'key is already loaded. discard it?',
+          showCancelButton: true
+        });
+
+        if (!discard_conf) {
           return false;
         }
       }
+      keyPair = null;
+      key_unloaded();
 
       strg_data_str = strg.getItem(strg_key);
       strg_data_obj = JSON.parse(strg_data_str);
@@ -267,7 +288,7 @@ $(document).ready(function () {
                   autocapitalize: 'off',
                   autocorrect: 'off'
                 }
-              })
+              });
 
               if (!password) {
                 throw new Error("bad passphrase(empty)");
@@ -294,7 +315,12 @@ $(document).ready(function () {
     } catch (e) {
       keyPair = null;
       key_unloaded();
-      alert(e.toString());
+
+      Swal.fire({
+        title: 'PrivKey load error',
+        type: 'error',
+        text: e.toString()
+      });
     }
   });
   btn_savekey.click(async function () {
@@ -307,7 +333,7 @@ $(document).ready(function () {
         autocapitalize: 'off',
         autocorrect: 'off'
       }
-    })
+    });
 
     var saveEnc = false;
     var saveKey = null;
@@ -351,9 +377,17 @@ $(document).ready(function () {
       if (keyPair === null) {
         throw new Error("key is empty!");
       }
-      prompt("copy private key", keyPair.toWIF());
+      Swal.fire({
+        title: 'dump PrivKey(WIF)',
+        input: 'textarea',
+        inputValue: keyPair.toWIF()
+      });
     } catch (e) {
-      alert(e.toString());
+      Swal.fire({
+        title: 'PrivKey dump error',
+        type: 'error',
+        text: e.toString()
+      });
     }
   });
   btn_dumpwallet.click(function () {
@@ -365,7 +399,7 @@ $(document).ready(function () {
         title: 'dump wallet',
         input: 'textarea',
         inputValue: strg_data_str
-      })
+      });
     } catch (e) {
       Swal.fire({
         title: 'no wallet!',
@@ -378,18 +412,31 @@ $(document).ready(function () {
   btn_genkey.click(function () {
     try {
       if (keyPair !== null) {
-        if (!confirm("key is already loaded. discard it?")) {
+        const { value: discard_conf } = await Swal.fire({
+          title: 'Discard PrivKey',
+          text: 'key is already loaded. discard it?',
+          showCancelButton: true
+        });
+
+        if (!discard_conf) {
           return false;
         }
       }
+      keyPair = null;
+      key_unloaded();
+
       keyPair = XPChain.ECPair.makeRandom({ network: window.XPCW.network });
       key_loaded();
     } catch (e) {
-      alert(e.toString());
+      Swal.fire({
+        title: 'PrivKey generate error',
+        type: 'error',
+        text: e.toString()
+      });
     }
   });
 
-  btn_sendtx.click(function () {
+  btn_sendtx.click(async function () {
     var size = 1000;//1kB
     var fee = 0.1;//XPC
     var feemsg = "";
@@ -401,11 +448,19 @@ $(document).ready(function () {
       var whole_amount;
       var toaddr = $.trim(xpc_to.val());
       if (isNaN(amount_send) || !isFinite(amount_send) || amount_send < window.XPCW.dust) {
-        alert("amount is invalid or dust.");
+        Swal.fire({
+          title: 'Bad amount',
+          type: 'warning',
+          text: 'amount is invalid or dust.'
+        });
         return false;
       }
       if (toaddr == "") {
-        alert("send to address is empty");
+        Swal.fire({
+          title: 'Bad send-to address',
+          type: 'warning',
+          text: 'send-to address is empty!'
+        });
         return false;
       }
 
@@ -577,38 +632,80 @@ $(document).ready(function () {
       var sendmsg = "send \n\n";
       sendmsg += amount_send + " XPC";
       sendmsg += "(with " + fee + " XPC fee" + feemsg + ")" + exmsg + "\n\nto\n\n" + toaddr + "\n\nproceed ok?"
-      if (confirm(sendmsg) == false) {
+
+      const { value: send_conf } = await Swal.fire({
+        title: 'Send Confirm',
+        text: sendmsg,
+        showCancelButton: true
+      });
+
+      if (!send_conf) {
         return false;
       }
+
       if (!window.XPCW.dryrun) {
+        ajaxed = true;
         $.ajax({
           type: 'POST',
           url: insight_api_url.val() + 'tx/send',
           dataType: 'text',
           data: "rawtx=" + tx,
         }).done(function (sendres) {
-          r(sendres);
+          var json = JSON.parse(sendres);
+          if (json && json.txid) {
+            var res_html = "<textarea id='send_result'>txid: " + json.txid;
+            if (window.XPCW.debug) {
+              res_html += "\nrawtx: " + tx;
+            }
+            res_html += "</textarea>";
+            Swal.fire({
+              title: 'Success!',
+              type: 'success',
+              html: res_html
+            });
+          } else {
+            Swal.fire({
+              title: 'Failure!',
+              type: 'error',
+              text: res_html
+            });
+          }
         }).fail(function (xhr, tstat, err) {
-          r("" + tstat + ": " + err + " [" + xhr.responseText + "]");
+          Swal.fire({
+            title: 'Failure!',
+            type: 'error',
+            text: "" + tstat + ": " + err + " [" + xhr.responseText + "]"
+          });
         }).always(function () { b(btn_sendtx, true); });
       } else {
-        r("DRY RUN: raw tx is \n" + tx);
+        (() => {
+          var res_html = "<textarea id='send_result'>rawtx: " + tx + "</textarea>";
+          Swal.fire({
+            title: 'DRY RUN',
+            type: 'info',
+            html: res_html
+          });
+        })();
       }
     } catch (e) {
-      alert(e.toString());
+      Swal.fire({
+        title: 'Failure!',
+        type: 'error',
+        text: e.toString()
+      });
     } finally {
       if (!ajaxed) { b(btn_sendtx, true); }
     }
   });
 
   //version checked
-  CONTROLS.plc.script_dynload.on("ver_fetched",function(e,data){
+  CONTROLS.plc.script_dynload.on("ver_fetched", function (e, data) {
     console.log("script dynamically loaded.");
     console.log(window.XPCW.latest_version);
     if (version.major < window.XPCW.latest_version.major ||
-      version.minor < window.XPCW.latest_version.minor || 
-      version.revision < window.XPCW.latest_version.revision || 
-      version.build < window.XPCW.latest_version.build){
+      version.minor < window.XPCW.latest_version.minor ||
+      version.revision < window.XPCW.latest_version.revision ||
+      version.build < window.XPCW.latest_version.build) {
       Swal.fire({
         title: "Update available",
         text: "New version found. Update now?",
@@ -618,7 +715,7 @@ $(document).ready(function () {
           window.location.reload(true);
         }
       })
-    }else{
+    } else {
       Swal.fire({
         title: "Latest version",
         text: "Already up to date."
@@ -627,8 +724,8 @@ $(document).ready(function () {
     b(CONTROLS.btn.updchk, true);
   });
 
-  CONTROLS.btn.updchk.click(function(e){
-    b(CONTROLS.btn.updchk,false);
+  CONTROLS.btn.updchk.click(function (e) {
+    b(CONTROLS.btn.updchk, false);
     var ts = Date.now();
     var se = document.createElement("script");
     se.src = "./js/version.js?ts=" + ts;
@@ -638,7 +735,7 @@ $(document).ready(function () {
 
 
   //#### INITIALIZE ####
-  (function(){
+  (function () {
     if (window.XPCW.network === XPChain.networks.testnet) {
       network_name = "testnet";
       version_str += "(testnet)";
@@ -663,7 +760,7 @@ $(document).ready(function () {
         xpc_infee.prop("checked", true).attr("checked", "checked");
       }
     }
-  
+
     b(btn_delkey, false);
     b(btn_sendtx, false);
     b(btn_savekey, false);
@@ -678,66 +775,15 @@ $(document).ready(function () {
     }
     if (strg_data_obj === null || strg_data_obj.version < strg_data_ver) {
       b(btn_loadkey, false);
-    }  
+    }
 
-    if (window.XPCW.debug){
-      console.log("%cWARNING: debug mode is activated. it's risky and developers only. ","color: red;font-size: 20px;");
+    if (window.XPCW.debug) {
+      console.log("%cWARNING: debug mode is activated. it's risky and developers only. ", "color: red;font-size: 20px;");
       window.XPCW.DEBUG_VARS = {
         WALLET: WALLET,
         CONTROLS: CONTROLS
       }
     }
   })();
-
-  /*
-  btn_utxo.click(function () {
-    var addr = $.trim(xpc_addr.val());
-    if (addr === "") {
-      alert("address is empty!");
-      return false;
-    }
-
-    b(btn_utxo, false);
-    try {
-      r("please wait...");
-      recentUTXO = [];
-      xpc_utxo.val("");
-
-      $.ajax({
-        type: 'GET',
-        url: insight_api_url.val() + 'addr/' + addr + '/utxoExt',
-        dataType: 'json',
-      }).done(function (json) {
-        if (!Array.isArray(json)) {
-          throw "result not Array. insight version mismatch?";
-        }
-        var i;
-        var res = "";
-        var amnt_total = 0;
-        var amnt_nojust = 0;
-        var is_coinbase = false;
-        var nojust_txidxs = [];
-        var justamnt = parseInt(xpc_amount.val());
-        for (i = 0; i < json.length; i++) {
-          is_coinbase = json[i].isCoinBase;
-          if ((is_coinbase && json[i].confirmations >= COINBASE_MIN_CONF) || (!is_coinbase && json[i].confirmations >= window.XPCW.min_conf)) {
-            if (res !== "") { res += "\n"; }
-            res += "UTXO #" + i + "\n" + JSON.stringify(json[i]) + "\n";
-          }
-        }
-        r(res);
-        xpc_utxo.val("0");
-
-        recentUTXO = json;
-      }).fail(function (xhr, tstat, err) {
-        r("Get UTXO failed. " + tstat + ": " + err + " [" + xhr.responseText + "]");
-      });
-    } catch (e) {
-      r("error: " + e);
-    }
-    b(btn_utxo, true);
-  });
-  */
-
 
 });
