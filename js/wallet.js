@@ -50,14 +50,14 @@ $(document).ready(function () {
       this.balance_local = 0;
       this.sync_at = null;
     },
-    renew_key: function(){
-      try{
+    renew_key: function () {
+      try {
         this.discard_key();
         this.key = XPChain.ECPair.makeRandom({ network: window.XPCW.network });
         this.addr = XPChain.payments.p2wpkh({ pubkey: this.key.publicKey, network: window.XPCW.network }).address;
 
         return true;
-      }catch(e){
+      } catch (e) {
         return e;
       }
     },
@@ -109,7 +109,7 @@ $(document).ready(function () {
       }
     },
     lock: function () {
-      if(this.is_encrypted() && this.key){
+      if (this.is_encrypted() && this.key) {
         this.key = null;
       }
     },
@@ -157,9 +157,9 @@ $(document).ready(function () {
       if (encrypted) {
         saveKey = this.keyEncrypted;
       } else {
-        if (!this.key){
+        if (!this.key) {
           saveKey = "";
-        }else{
+        } else {
           saveKey = this.key.toWIF();
         }
       }
@@ -195,11 +195,11 @@ $(document).ready(function () {
             this.version = data_obj.version;
             this.label = data_obj.label || "main";
             this.keyEncInfo = data_obj.enc_info;
-            if (this.keyEncInfo.salt && this.keyEncInfo.iv){
+            if (this.keyEncInfo.salt && this.keyEncInfo.iv) {
               this.keyEncrypted = data_obj.key;
               this.key = null;
               this.addr = data_obj.addr;
-            }else{
+            } else {
               this.keyEncrypted = null;
               this.key = XPChain.ECPair.fromWIF(data_obj.key, window.XPCW.network);
               this.addr = XPChain.payments.p2wpkh({ pubkey: this.key.publicKey, network: window.XPCW.network }).address;
@@ -284,21 +284,40 @@ $(document).ready(function () {
     return Math.floor(v) / 10000.0;
   }
 
+  function save_wallet(w) {
+    try {
+      var strg_data_str = null;
+      var strg_data_obj = null;
+      strg_data_obj = w.dump(true);
+      strg_data_str = JSON.stringify(strg_data_obj);
+      STRG.setItem(STRG_KEY, strg_data_str);
+
+      return true;
+    } catch (e) {
+      return e;
+    }
+  }
+
   //#### UI COMPONENTS ####
 
   const CONTROLS = {
     btn: {
+      pay: $("#btn_pay"),
+      refresh: $("#btn_refresh"),
       updchk: $("#btn_updchk")
     },
     plc: {
       script_dynload: $("#script_dynamic_loading")
+    },
+    tmpl: {
+      pay_form: $("#pay_form").get(0).outerHTML
     }
   };
+  $("#template").remove();
 
   var version_label = $("span.ver");
   var insight_link = $("#insight_url");
   var btn_addr_qr = $("#btn_addr_qr");
-  var btn_refresh = $("#btn_refresh");
   var btn_impkey = $("#btn_impkey");
   var btn_delkey = $("#btn_delkey");
   var btn_loadkey = $("#btn_loadkey");
@@ -310,12 +329,6 @@ $(document).ready(function () {
   var insight_api_url = $("#insight_api_url");
   var xpc_addr = $("#xpc_addr");
   var xpc_bal = $("#xpc_bal");
-  var xpc_utxo = $("#xpc_utxo");
-  var xpc_to = $("#xpc_to");
-  var xpc_infee = $("#xpc_infee");
-  var xpc_amount = $("#xpc_amount");
-  var xpc_count = $("#xpc_count");
-  var extra_data = $("#extra_data");
 
 
   //#### UI FUNCTIONS ####
@@ -331,18 +344,34 @@ $(document).ready(function () {
     }
   }
 
-  var key_loaded = function () {
-    xpc_addr.val(WALLET.addr);
+  function key_loaded() {
+    show_wallet_to_ui(WALLET);
     b(btn_delkey, true);
     b(btn_sendtx, true);
     b(btn_savekey, true);
-    b(btn_dumpkey, true);    
+    b(btn_dumpkey, true);
   }
-  var key_unloaded = function () {
+  
+  function key_unloaded() {
+    sweep_wallet_from_ui();
     b(btn_delkey, false);
     b(btn_sendtx, false);
     b(btn_savekey, false);
     b(btn_dumpkey, false);
+  }
+
+  function show_wallet_to_ui(w){
+    if (xpc_addr.val() !== w.addr){
+      xpc_addr.val(w.addr);
+    }
+    //todo if sync_at is recent, show cached balance with black color.
+    //otherwise, show cached balance with gray color.
+    xpc_bal.val(mocha_to_xpc(w.balance + w.balance_local));
+  }
+
+  function sweep_wallet_from_ui(){
+    xpc_addr.val("");
+    xpc_bal.val("-.----");
   }
 
   //#### UI HANDLERS ####
@@ -368,7 +397,33 @@ $(document).ready(function () {
 
   });
 
-  btn_refresh.click(function () {
+  CONTROLS.btn.pay.click(function () {
+
+    var addr_sendto = null;
+    var amount_send = 0;
+    var fee_include = false;
+
+    Swal.fire({
+      title: 'Pay XPC',
+      html: CONTROLS.tmpl.pay_form,
+      showCancelButton: true,
+      confirmButtonText: 'Pay',
+      onRender: ()=>{
+      
+      },
+      preConfirm: ()=>{
+        return false;
+      }
+    }).then((result)=>{
+      if (result.value){
+
+      }
+    });
+
+
+  });
+
+  CONTROLS.btn.refresh.click(function () {
     var addr = $.trim(xpc_addr.val());
     if (addr === "") {
       Swal.fire({
@@ -378,7 +433,7 @@ $(document).ready(function () {
       });
       return false;
     }
-    b(btn_refresh, false);
+    b(CONTROLS.btn.refresh, false);
     try {
       R_DONT_USE("please wait...");
 
@@ -416,15 +471,24 @@ $(document).ready(function () {
         }
 
         xpc_bal.val(mocha_to_xpc(WALLET.balance + WALLET.balance_local));
-
+        save_wallet(WALLET);
+        show_wallet_to_ui(WALLET);
       }).fail(function (xhr, tstat, err) {
-        R_DONT_USE("Refresh failed. " + tstat + ": " + err + " [" + xhr.responseText + "]");
+        Swal.fire({
+          title: 'Refresh Error',
+          type: 'error',
+          text: 'Refresh failed. " + tstat + ": " + err + " [" + xhr.responseText + "]'
+        });
       }).always(function () {
-        b(btn_refresh, true);
+        b(CONTROLS.btn.refresh, true);
       });
     } catch (e) {
-      b(btn_refresh, true);
-      R_DONT_USE("error: " + e);
+      b(CONTROLS.btn.refresh, true);
+      Swal.fire({
+        title: 'Refresh Error',
+        type: 'error',
+        text: e.toString()
+      });
     }
   });
 
@@ -508,61 +572,21 @@ $(document).ready(function () {
     }
   });
   btn_savekey.click(async function () {
-    var strg_data_str = null;
-    var strg_data_obj = null;
-
-    //todo move to btn_encrypt
-    /*
-    const { value: password } = await Swal.fire({
-      title: 'passphrase for encrypt wallet',
-      input: 'password',
-      inputPlaceholder: 'Enter passphrase...',
-      inputAttributes: {
-        maxlength: 64,
-        autocapitalize: 'off',
-        autocorrect: 'off'
-      }
-    });
-
-    var saveEnc = false;
-    var saveKey = null;
-    var savesalt = null;
-    var saveiv = null;
-
-    if (password) {
-      console.log("save encrypted wallet");
-      var secret_passphrase = CryptoJS.enc.Utf8.parse(password);
-      var salt = CryptoJS.lib.WordArray.random(128 / 8);
-      var key128Bits500Iterations =
-        CryptoJS.PBKDF2(secret_passphrase, salt, { keySize: 128 / 8, iterations: 500 });
-      var iv = CryptoJS.lib.WordArray.random(128 / 8);
-      var options = { iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 };
-      var message_text = CryptoJS.enc.Utf8.parse(WALLET.key.toWIF());
-      var encrypted = CryptoJS.AES.encrypt(message_text, key128Bits500Iterations, options);
-
-      saveKey = encrypted.toString();
-      savesalt = CryptoJS.enc.Hex.stringify(salt);
-      saveiv = CryptoJS.enc.Hex.stringify(iv);
-
-      saveEnc = true;
-    } else {
-      console.log("save plain wallet");
-      saveKey = WALLET.key.toWIF();
+    var ret = save_wallet(WALLET);
+    if (ret !== true){
+      Swal.fire({
+        title: 'PrivKey dump error',
+        type: 'error',
+        text: e.toString()
+      });
     }
-    */
-
-    strg_data_obj = WALLET.dump(true);
-    //console.dir(strg_data_obj);
-    strg_data_str = JSON.stringify(strg_data_obj);
-    STRG.setItem(STRG_KEY, strg_data_str);
-    b(btn_loadkey, true);
   });
   btn_dumpkey.click(function () {
     try {
       if (WALLET.key === null) {
-        if (WALLET.is_locked()){
+        if (WALLET.is_locked()) {
           throw new Error("wallet is locked!");
-        }else{
+        } else {
           throw new Error("key is empty!");
         }
       }
@@ -579,7 +603,7 @@ $(document).ready(function () {
       });
     }
   });
-  
+
   btn_dumpwallet.click(function () {
     try {
       Swal.fire({
@@ -613,7 +637,7 @@ $(document).ready(function () {
       }
 
       ret = WALLET.renew_key();
-      if (!ret){
+      if (!ret) {
         throw ret;
       }
       key_loaded();
@@ -659,7 +683,7 @@ $(document).ready(function () {
       xpc_amount.val(amount_send);
       whole_amount = amount_send * count;
 
-      var utxo_str = xpc_utxo.val();
+      var utxo_str = "TODO_FIX_ME!!";//todo
       var utxo_idx = parseInt(utxo_str);
       var utxo_arr = utxo_str.split(",");
       var tutxo = null;
@@ -927,57 +951,95 @@ $(document).ready(function () {
 
   //#### INITIALIZE ####
   (function () {
-    var strg_data_str = null;
-    var strg_data_obj = null;
+    try {
+      var strg_data_str = null;
+      var strg_data_obj = null;
+      var ret;
 
-    if (window.XPCW.network === XPChain.networks.testnet) {
-      network_name = "testnet";
-      version_str += "(testnet)";
-      STRG_KEY += "_testnet";
-    }
+      //activate testnet
+      if (window.XPCW.network === XPChain.networks.testnet) {
+        network_name = "testnet";
+        version_str += "(testnet)";
+        STRG_KEY += "_testnet";
+      }
 
-    version_label.text(version_str);
-    insight_link.attr("href", window.XPCW.insight_urls[network_name]);
-    insight_api_url.val(window.XPCW.insight_api_urls[network_name]);
-    //default setting
-    if (window.XPCW.defaults && window.XPCW.defaults[network_name]) {
-      if (window.XPCW.defaults[network_name].to) {
-        xpc_to.val(window.XPCW.defaults[network_name].to);
+      //ui default value load
+      version_label.text(version_str);
+      insight_link.attr("href", window.XPCW.insight_urls[network_name]);
+      insight_api_url.val(window.XPCW.insight_api_urls[network_name]);
+      //default setting
+      if (window.XPCW.defaults && window.XPCW.defaults[network_name]) {
+        if (window.XPCW.defaults[network_name].infee === true) {
+          xpc_infee.prop("checked", true).attr("checked", "checked");
+        }
       }
-      if (window.XPCW.defaults[network_name].amount) {
-        xpc_amount.val(window.XPCW.defaults[network_name].amount);
-      }
-      if (window.XPCW.defaults[network_name].count >= 1) {
-        xpc_count.val(window.XPCW.defaults[network_name].count);
-      }
-      if (window.XPCW.defaults[network_name].infee === true) {
-        xpc_infee.prop("checked", true).attr("checked", "checked");
-      }
-    }
 
-    b(btn_delkey, false);
-    b(btn_sendtx, false);
-    b(btn_savekey, false);
-    b(btn_dumpkey, false);
-    strg_data_str = STRG.getItem(STRG_KEY);
-    if (strg_data_str !== null) {
-      try {
-        strg_data_obj = JSON.parse(strg_data_str);
-      } catch (e) {
-        strg_data_obj = null;
-      }
-    }
-    if (strg_data_obj === null || strg_data_obj.version < WALLET_DATA_VER) {
-      b(btn_loadkey, false);
-    }
+      b(btn_delkey, false);
+      b(btn_sendtx, false);
+      b(btn_savekey, false);
+      b(btn_dumpkey, false);
+      b(btn_loadkey, true);
 
-    if (window.XPCW.debug) {
-      console.log("%cWARNING: debug mode is activated. it's risky and developers only. ", "color: red;font-size: 20px;");
-      window.XPCW.DEBUG_VARS = {
-        WALLET: WALLET,
-        CONTROLS: CONTROLS,
-        STRG: STRG
+      //check existent wallet
+      strg_data_str = STRG.getItem(STRG_KEY);
+      if (strg_data_str !== null) {
+        try {
+          strg_data_obj = JSON.parse(strg_data_str);
+        } catch (e) {
+          strg_data_obj = null;
+        }
       }
+
+      if (strg_data_obj === null) {
+        //create new wallet - first boot
+        WALLET.renew_key();
+        ret = save_wallet(WALLET);
+        if (ret !== true){
+          throw ret;
+        }        
+        key_loaded();
+      } else {
+        //auto wallet loading
+        //todo wallet versioning...upper compatible or not?
+        if (strg_data_obj.version <= WALLET_DATA_VER) {
+          ret = WALLET.load(strg_data_str);
+          if (ret === true) {
+            key_loaded();
+          } else {
+            Swal.fire({
+              title: 'Wallet Load Error',
+              type: 'error',
+              text: 'wallet loading failed' + ret.toString()
+            });
+            WALLET.discard_key();
+            key_unloaded();
+          }
+        } else {
+          Swal.fire({
+            title: 'Unknown Wallet Version',
+            type: 'warning',
+            text: 'wallet version(' + strg_data_obj.version + ') is higher than supported(' + WALLET_DATA_VER + ').'
+          });
+        }
+      }
+
+      //debug mode
+      if (window.XPCW.debug) {
+        console.log("%cWARNING: debug mode is activated. it's risky and developers only. ", "color: red;font-size: 20px;");
+        window.XPCW.DEBUG_VARS = {
+          WALLET: WALLET,
+          CONTROLS: CONTROLS,
+          STRG: STRG
+        }
+      }else{
+        $(".debug").hide();
+      }
+    } catch (e) {
+      Swal.fire({
+        title: 'Unexpected Error',
+        type: 'error',
+        text: 'wallet initialize failed.\n' + e.toString()
+      });
     }
   })();
 

@@ -36,7 +36,7 @@
             <button type="button" id="btn_refresh" class="cbtn">
                 <span>Refresh</span>
             </button>
-            <div class="cbtns">
+            <div class="cbtns debug">
                 <button type="button" id="btn_impkey" class="cbtn warn">
                     <span>Import Key</span>
                 </button>
@@ -47,7 +47,7 @@
                     <span>Dump Key</span>
                 </button>
             </div>
-            <div class="cbtns">
+            <div class="cbtns debug">
                 <button type="button" id="btn_delkey" class="cbtn hide">
                     <span>Discard Key</span>
                 </button>
@@ -61,37 +61,33 @@
                     <span>Dump wallet</span>
                 </button>
             </div>
-            <div class="crow hide">
-                <span>input UTXO(index or JSON)</span>
-                <input type="text" id="xpc_utxo" value="" />
-            </div>
-            <div class="crow">
-                <span>send to</span>
-                <input type="text" id="xpc_to" value="" />
-            </div>
-            <div class="crow">
-                <span id="xpc_amount_title">amount(XPC)</span>
-                <input type="text" id="xpc_amount" value="" />
-               <input type="checkbox" id="xpc_infee" />
-               <label for="xpc_infee" class="nogrow">include fee</label>                
-            </div>
-            <div class="crow hide">
-                <span>count</span>
-                <input type="text" id="xpc_count" value="1" />
-            </div>
-            <div class="crow hide">
-                <span>extra data(optional)</span>
-                <input type="text" id="extra_data" value="" />
-            </div>
-            <button type="button" id="btn_sendtx" class="cbtn hide">
-                <span>Send XPC!</span>
-            </button>
-            <button type="button" id="btn_sendtx" class="cbtn hide">
-                <span>Send XPC!</span>
-            </button>
+            <button type="button" id="btn_pay" class="cbtn">
+                <span>Pay XPC</span>
+            </button> 
             <button type="button" id="btn_updchk" class="cbtn">
                 <span>update check</span>
             </button>
+        </div>
+        <div id="template" class="hide">
+            <div id="pay_form">
+                <div class="crow">
+                    <span>send to</span>
+                    <input type="text" id="xpc_to" value="" />
+                </div>
+                <div class="crow">
+                    <span id="xpc_amount_title">amount(XPC)</span>
+                    <input type="text" id="xpc_amount" value="" />
+                   <input type="checkbox" id="xpc_infee" />
+                   <label for="xpc_infee" class="nogrow">include fee</label>                
+                </div>
+                <div class="crow hide">
+                    <span>extra data(optional)</span>
+                    <input type="text" id="extra_data" value="" />
+                </div>
+                <button type="button" id="btn_sendtx" class="cbtn hide">
+                    <span>Send XPC!</span>
+                </button>    
+            </div>
         </div>
         <div id="script_loading" class="hide">
             <!-- libs -->
