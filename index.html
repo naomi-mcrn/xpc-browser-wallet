@@ -23,12 +23,12 @@
                 <span>insight API</span>
                 <input type="text" id="insight_api_url" value="" />
             </div>
-            <div class="crow">
+            <div class="crow ss">
                 <span>address</span>
-                <input type="text" id="xpc_addr" value="" readonly="readonly" />
+                <textarea id="xpc_addr" readonly="readonly"></textarea>
                 <button type="button" id="btn_addr_qr" class="cbtn">QR</button>
             </div>
-            <div class="crow">
+            <div class="crow ss">
                 <span>balance</span>
                 <input type="text" id="xpc_bal" class="numeric large" value="-.----" readonly="readonly" />
                 <span>XPC</span>
@@ -70,17 +70,20 @@
         </div>
         <div id="template" class="hide">
             <div id="pay_form">
-                <div class="crow">
+                <div class="crow ss">
                     <span>send to</span>
-                    <input type="text" id="xpc_to" value="" />
+                    <textarea id="xpc_to">xpc1qqsl875nchke39nuat3pre8g7zgd6rc84twsxa3!tps7w33ejltssphcqyk</textarea>
+                    <button type="button" id="btn_payto_qr" class="cbtn">QR</button>     
                 </div>
-                <div class="crow">
+                <div class="crow ss">
                     <span id="xpc_amount_title">amount(XPC)</span>
-                    <input type="text" id="xpc_amount" value="" />
+                    <input type="text" id="xpc_amount" value="" />                
+                </div>
+                <div class="crow ss">
                    <input type="checkbox" id="xpc_infee" />
                    <label for="xpc_infee" class="nogrow">include fee</label>                
                 </div>
-                <div class="crow hide">
+                <div class="crow ss hide">
                     <span>extra data(optional)</span>
                     <input type="text" id="extra_data" value="" />
                 </div>
@@ -106,7 +109,7 @@
             <script src="./js/jsQR-supp.js?r=1"></script>   
             <!-- apps - configure first! -->
             <script src="./js/config.js?r=1"></script>
-            <script src="./js/wallet.js?v=0.0.6&r=1&c=dev"></script>
+            <script src="./js/wallet.js?v=0.0.6&r=2&c=dev"></script>
             <div id="script_dynamic_loading">                
             </div>
         </div>

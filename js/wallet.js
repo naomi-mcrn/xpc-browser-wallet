@@ -6,7 +6,7 @@ $(document).ready(function () {
     major: 0,
     minor: 0,
     revision: 6,
-    build: 1,
+    build: 2,
     channel: "dev"
   }
   var version_str = "" + version.major + "." + version.minor + "." + version.revision;
@@ -1031,8 +1031,7 @@ $(document).ready(function () {
           CONTROLS: CONTROLS,
           STRG: STRG
         }
-      }else{
-        $(".debug").hide();
+        $(".debug").removeClass("debug");
       }
     } catch (e) {
       Swal.fire({
