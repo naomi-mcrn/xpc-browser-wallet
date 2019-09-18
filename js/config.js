@@ -28,18 +28,10 @@
     //default value: to,amount,count,infee,mode
     window.XPCW.defaults = {
         mainnet: {
-            to: "",
-            amount: 0,
-            count: 0,
             infee: false,
-            mode: "simple"
         },
         testnet: {
-            to: "txpc1qtje728k2xkcyexva2cr5t7624j8q6ar2snedxm",
-            amount: 10,
-            count: 1,
             infee: true,
-            mode: "simple"
         }
     }
 })();
