@@ -5,7 +5,7 @@ $(document).ready(function () {
   var version = {
     major: 0,
     minor: 1,
-    revision: 0,
+    revision: 1,
     build: 1,
     channel: "alpha"
   }
@@ -1024,6 +1024,12 @@ $(document).ready(function () {
     qrscan_initialize();
     window.jsQRLive.scanOnce().then((result) => {
       if (result) {
+        try{
+          var adq = result.match(/\w+:(.+?)\?/)[1];
+          result = adq;
+        }catch(e){
+          //do nothing
+        }
         PAY_CONTROLS.text.xpc_to.val(result);
       } else {
         //todo read failure?
