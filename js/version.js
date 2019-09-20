@@ -3,10 +3,10 @@
     window.XPCW = window.XPCW || {};
     window.XPCW.latest_version = {
         major: 0,
-        minor: 0,
-        revision: 6,
-        build: 2,
-        channel: "dev",
+        minor: 1,
+        revision: 0,
+        build: 1,
+        channel: "alpha",
         fetch_at: Date.now()
     }
 

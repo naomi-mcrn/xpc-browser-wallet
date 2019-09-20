@@ -4,10 +4,10 @@ $(document).ready(function () {
   //#### VERSION ####
   var version = {
     major: 0,
-    minor: 0,
-    revision: 6,
-    build: 2,
-    channel: "dev"
+    minor: 1,
+    revision: 0,
+    build: 1,
+    channel: "alpha"
   }
   var version_str = "" + version.major + "." + version.minor + "." + version.revision;
   if (version.channel) {
@@ -270,14 +270,121 @@ $(document).ready(function () {
       } catch (e) {
         return e;
       }
+    },
+    coin_select: function (amount_in_mocha) {
+      //todo error trap
+      var i;
+      var selected = [];
+      var remain = amount_in_mocha;
+      var utxos = Array.from(this.utxo);
+
+      utxos.sort((a, b) => { return a.amount - b.amount; });
+      for (i = 0; i < utxos.length; i++) {
+        if (!utxos[i].spent){
+          selected.push(utxos[i]);
+          remain -= utxos[i].amount;
+          if (remain <= 0){
+            break;
+          }
+        }
+      }
+
+      if (remain > 0){
+        return [];
+      }
+
+      if (XPCW.debug){
+        console.log("utxo selected: " + JSON.stringify(selected));
+      }
+
+      return selected;
     }
   }
 
 
 
   //#### UTILITY ####
-  function xpc_to_mocha(v) {
-    return Math.round(v * 10000);
+  function build_tx(pay_params,selected_utxos,actual_size){
+    var mywpkh = XPChain.payments.p2wpkh({
+      pubkey: WALLET.key.publicKey, network: window.XPCW.network
+    });
+    var built_tx;
+    var fee;
+    var size;
+    var utxo_amount = sum_amount(selected_utxos);
+    var change = utxo_amount - pay_params.amount;
+
+    if (actual_size > 0){
+      size = actual_size;
+    }else{
+      //todo more best estimation!
+      size = 500 * (selected_utxos.length + 1);//txins + txouts
+    }
+    fee = window.XPCW.fee * size;//mocha
+    if (pay_params.infee){
+      pay_params.amount -= fee;
+    }else{
+      change -= fee;
+    }
+
+    if (change !== 0 && change < window.XPCW.dust) {
+      alert("change is too low or insufficient: " + change);//todo remove alert!
+      return null;
+    }
+
+    var txb = new XPChain.TransactionBuilder(window.XPCW.network);
+    var txouts = [];
+    var txout;
+    var txins = [];
+    var txin;
+
+    for (let i = 0; i < selected_utxos.length; i++) {
+      txin = txb.addInput(selected_utxos[i].txid, selected_utxos[i].vout, null, mywpkh.output);
+      txins.push(txin);
+    }
+    //for (let i = 0; i < count; i++) {
+      txout = txb.addOutput(pay_params.addr, pay_params.amount);
+      txouts.push(txout);
+    //}
+    /*
+    var exmsg = "";
+    if ($.trim(extra_data.val()) !== "") {
+      var data = XPChain.lib.Buffer.from(extra_data.val(), 'utf8');
+      var embed = XPChain.payments.embed({ data: [data] });
+      var txoutx = txb.addOutput(embed.output, 0);
+      exmsg = " and extra data";
+    }
+    */
+    if (change !== 0) {
+      txout = txb.addOutput(mywpkh.address, change);
+      txouts.push(txout);
+    }
+    for (let i = 0; i < selected_utxos.length; i++) {
+      txb.sign(txins[i], WALLET.key, null, null, selected_utxos[i].amount);
+    }
+    built_tx = txb.build();
+    return built_tx;
+  }
+
+  function check_pay_params(pay_params) {
+    try {
+      //todo address verification (prefix, length).
+      if (!pay_params.addr) {
+        return { "error": "address", "reason": "is empty" };
+      }
+
+      if (isNaN(pay_params.amount) || !isFinite(pay_params.amount) || pay_params.amount < window.XPCW.dust) {
+        return { "error": "amount", "reason": "is invalid or dust." };
+      }
+
+      if (pay_params.infee !== true && pay_params.infee !== false) {
+        return { "error": "infee", "reason": "is indeterminant." };
+      }
+
+      return true;
+    } catch (e) {
+      return { "error": e.toString() };
+    }
   }
 
   function mocha_to_xpc(v) {
@@ -298,6 +405,19 @@ $(document).ready(function () {
     }
   }
 
+  function sum_amount(utxos){
+    var i;
+    var v = 0;
+    for(i = 0;i<utxos.length;i++){
+      v += utxos[i].amount;
+    }
+    return v;
+  }
+
+  function xpc_to_mocha(v) {
+    return Math.round(v * 10000);
+  }
+
   //#### UI COMPONENTS ####
 
   const CONTROLS = {
@@ -306,7 +426,9 @@ $(document).ready(function () {
       pay: $("#btn_pay"),
       refresh: $("#btn_refresh"),
       updchk: $("#btn_updchk"),
-      qrscan_cancel: $("#btn_qrscan_cancel")
+      qrscan_cancel: $("#btn_qrscan_cancel"),
+      backup_wallet: $("#btn_backup_wallet"),
+      recover_wallet: $("#btn_recover_wallet")
     },
     text: {
       xpc_addr: $("#xpc_addr"),
@@ -370,7 +492,7 @@ $(document).ready(function () {
     b(btn_savekey, true);
     b(btn_dumpkey, true);
   }
-  
+
   function key_unloaded() {
     sweep_wallet_from_ui();
     b(btn_delkey, false);
@@ -379,8 +501,8 @@ $(document).ready(function () {
     b(btn_dumpkey, false);
   }
 
-  function show_wallet_to_ui(w){
-    if (CONTROLS.text.xpc_addr.val() !== w.addr){
+  function show_wallet_to_ui(w) {
+    if (CONTROLS.text.xpc_addr.val() !== w.addr) {
       CONTROLS.text.xpc_addr.val(w.addr);
     }
     //todo if sync_at is recent, show cached balance with black color.
@@ -388,20 +510,20 @@ $(document).ready(function () {
     CONTROLS.text.xpc_bal.val(mocha_to_xpc(w.balance + w.balance_local));
   }
 
-  function sweep_wallet_from_ui(){
+  function sweep_wallet_from_ui() {
     CONTROLS.text.xpc_addr.val("");
     CONTROLS.text.xpc_bal.val("-.----");
   }
 
-  function qrscan_initialize(){
+  function qrscan_initialize() {
     var cnvs = $("<canvas id='canvas' width='300' height='300'></canvas>");
-    cnvs.appendTo(CONTROLS.panel.qr_container);    
+    cnvs.appendTo(CONTROLS.panel.qr_container);
     CONTROLS.panel.qr_container.show();
     var canvasElement = document.getElementById("canvas");
     window.jsQRLive.initialize(canvasElement);
   }
 
-  function qrscan_finalize(){
+  function qrscan_finalize() {
     CONTROLS.panel.qr_container.hide();
     window.jsQRLive.scanStop();
     $("#canvas").remove();
@@ -431,48 +553,151 @@ $(document).ready(function () {
   });
 
   CONTROLS.btn.pay.click(function () {
-
-    var addr_sendto = null;
-    var amount_send = 0;
-    var fee_include = false;
-
-
-
     Swal.fire({
       title: 'Pay XPC',
       html: CONTROLS.tmpl.pay_form,
       showCancelButton: true,
       confirmButtonText: 'Pay',
-      onRender: ()=>{
+      onRender: () => {
         //init controls
         PAY_CONTROLS.btn.payto_qr = $("#btn_payto_qr");
-        PAY_CONTROLS.btn.payto_qr.qrcode({ width: 48, height: 48, text: 'Q' }); 
+        PAY_CONTROLS.btn.payto_qr.qrcode({ width: 48, height: 48, text: 'Q' });
         PAY_CONTROLS.text.xpc_to = $("#xpc_to");
         PAY_CONTROLS.text.xpc_amount = $("#xpc_amount");
         PAY_CONTROLS.check.xpc_infee = $("#xpc_infee");
 
         //attach events
-        PAY_CONTROLS.btn.payto_qr.on("click",payform_btn_payto_qr_click);
+        PAY_CONTROLS.btn.payto_qr.on("click", payform_btn_payto_qr_click);
       },
-      preConfirm: ()=>{
-        return false;
-      },
-      onClose:()=>{
-        //detach event
-        PAY_CONTROLS.btn.payto_qr.off("click",payform_btn_payto_qr_click);
+      preConfirm: () => {
+        //todo unlock if wallet locked.
+        var ret;
+        var selected_utxos = [];
+        var tx;
+        var bk_amnt;
+        var act_size;
+        var paid_fee;
+        var pay_params = {
+          addr: $.trim(PAY_CONTROLS.text.xpc_to.val()),
+          amount: xpc_to_mocha(parseFloat(PAY_CONTROLS.text.xpc_amount.val())),
+          infee: PAY_CONTROLS.check.xpc_infee.prop("checked")
+        }
+
+        if ((ret = check_pay_params(pay_params)) !== true) {
+          //todo parse error and warn
+           alert("ERR: bad param: " + JSON.stringify(ret));//todo remove alert!
+          return false;
+        }
+
+        selected_utxos = WALLET.coin_select(pay_params.amount + 100000);//todo fee...
+        if (selected_utxos.length < 1){
+          //todo error show
+          alert("ERR: insufficient balance!");//todo remove alert!
+          return false;
+        }
+
+        bk_amnt = pay_params.amount;
+        tx = build_tx(pay_params,selected_utxos,-1);
+        if (!tx){
+          alert("ERR: tx creation error");//todo remove alert!
+          return false;
+        }
+        act_size = tx.virtualSize() + 10;
+        paid_fee = act_size * window.XPCW.fee;
+        pay_params.amount = bk_amnt;
+        tx = build_tx(pay_params,selected_utxos,act_size);//todo margin adjust;
         
+        return {
+          tx: tx,
+          pay_params: pay_params,
+          fee: paid_fee
+        }
+      },
+      onClose: () => {
+        //detach event
+        PAY_CONTROLS.btn.payto_qr.off("click", payform_btn_payto_qr_click);
+
         //finalize controls
         PAY_CONTROLS.btn.payto_qr = null;
         PAY_CONTROLS.text.xpc_to = null;
         PAY_CONTROLS.text.xpc_amount = null;
         PAY_CONTROLS.check.xpc_infee = null;
       }
-    }).then((result)=>{
-      if (result.value){
+    }).then(async (result) => {
+      if (result.value) {
+        var tx = result.value.tx.toHex();
+        var pay_params = result.value.pay_params;
+        var fee = result.value.fee;
+        var ajaxed = false;
 
+        var sendmsg = "send \n\n";
+        sendmsg += mocha_to_xpc(pay_params.amount) + " XPC";
+        sendmsg += "(with " + mocha_to_xpc(fee) + " XPC fee";
+        if (pay_params.infee){
+          sendmsg += " included";
+        }else{
+          sendmsg += " total " + (mocha_to_xpc(pay_params.amount + fee)); 
+        }
+        sendmsg += ")\n\nto\n\n" + pay_params.addr + "\n\nproceed ok?"  
+
+        const { value: send_conf } = await Swal.fire({
+          title: 'Send Confirm',
+          text: sendmsg,
+          showCancelButton: true
+        });
+
+        if (!send_conf) {
+          return false;
+        }
+
+        if (!window.XPCW.dryrun) {
+          ajaxed = true;
+          $.ajax({
+            type: 'POST',
+            url: CONTROLS.text.insight_api_url.val() + 'tx/send',
+            dataType: 'text',
+            data: "rawtx=" + tx,
+          }).done(function (sendres) {
+            var json = JSON.parse(sendres);
+            if (json && json.txid) {
+              var res_html = "<textarea id='send_result'>txid: " + json.txid;
+              if (window.XPCW.debug) {
+                res_html += "\nrawtx: " + tx;
+              }
+              res_html += "</textarea>";
+              Swal.fire({
+                title: 'Success!',
+                type: 'success',
+                html: res_html
+              }).then(()=>{
+                CONTROLS.btn.refresh.click();//todo 
+              });
+            } else {
+              Swal.fire({
+                title: 'Failure!',
+                type: 'error',
+                text: res_html
+              });
+            }
+          }).fail(function (xhr, tstat, err) {
+            Swal.fire({
+              title: 'Failure!',
+              type: 'error',
+              text: "" + tstat + ": " + err + " [" + xhr.responseText + "]"
+            });
+          }).always(function () { b(PAY_CONTROLS.btn.sendtx, true); });
+        } else {
+          (() => {
+            var res_html = "<textarea id='send_result'>rawtx: " + tx + "</textarea>";
+            Swal.fire({
+              title: 'DRY RUN',
+              type: 'info',
+              html: res_html
+            });
+          })();
+        }
       }
     });
-
   });
 
 
@@ -627,7 +852,7 @@ $(document).ready(function () {
   });
   btn_savekey.click(async function () {
     var ret = save_wallet(WALLET);
-    if (ret !== true){
+    if (ret !== true) {
       Swal.fire({
         title: 'PrivKey dump error',
         type: 'error',
@@ -668,6 +893,55 @@ $(document).ready(function () {
     } catch (e) {
       Swal.fire({
         title: 'Wallet dump error',
+        type: 'error',
+        text: e.toString()
+      });
+    }
+  });
+
+  CONTROLS.btn.backup_wallet.click(function () {
+    //todo remove dumpwallet?
+    try {
+      Swal.fire({
+        title: 'Backup wallet',
+        input: 'textarea',
+        inputValue: JSON.stringify(WALLET.dump(false))
+      });
+    } catch (e) {
+      Swal.fire({
+        title: 'Wallet backup error',
+        type: 'error',
+        text: e.toString()
+      });
+    }
+  });
+
+  CONTROLS.btn.recover_wallet.click(function () {
+    //todo remove dumpwallet?
+    try {
+      Swal.fire({
+        title: 'Recover wallet',
+        input: 'textarea',
+        inputValue: ''
+      }).then((result)=>{
+        if (result.value){
+          var ret;
+          if ((ret = WALLET.load(result.value))){
+            ret = save_wallet(WALLET);
+            if (ret !== true) {
+              throw ret;
+            }
+            key_loaded();
+            CONTROLS.btn.refresh.click();//todo 
+          }else{
+            key_unloaded();
+            throw ret;
+          }
+        }
+      });
+    } catch (e) {
+      Swal.fire({
+        title: 'Wallet recover error',
         type: 'error',
         text: e.toString()
       });
@@ -740,18 +1014,18 @@ $(document).ready(function () {
     document.getElementById(CONTROLS.plc.script_dynload.prop("id")).appendChild(se);
   });
 
-  CONTROLS.btn.qrscan_cancel.click(function (e){
+  CONTROLS.btn.qrscan_cancel.click(function (e) {
     qrscan_finalize();
   });
 
   //#### UI HANDLERS(PAY FORM)####
 
-  var payform_btn_payto_qr_click = (function(e){
+  var payform_btn_payto_qr_click = (function (e) {
     qrscan_initialize();
     window.jsQRLive.scanOnce().then((result) => {
       if (result) {
         PAY_CONTROLS.text.xpc_to.val(result);
-      }else{
+      } else {
         //todo read failure?
       }
       qrscan_finalize();
@@ -763,268 +1037,6 @@ $(document).ready(function () {
         text: JSON.stringify(errobj)
       });
     });
-  });
-
-  var payform_btn_sendtx_click = (async function(e){
-    var size = 1000;//1kB
-    var fee = 0.1;//XPC
-    var feemsg = "";
-    var ajaxed = false;
-    b(PAY_CONTROLS.btn.sendtx, false);
-    try {
-      var count = 1;
-      var amount_send = parseFloat(xpc_amount.val());
-      var whole_amount;
-      var toaddr = $.trim(xpc_to.val());
-      if (isNaN(amount_send) || !isFinite(amount_send) || amount_send < window.XPCW.dust) {
-        Swal.fire({
-          title: 'Bad amount',
-          type: 'warning',
-          text: 'amount is invalid or dust.'
-        });
-        return false;
-      }
-      if (toaddr == "") {
-        Swal.fire({
-          title: 'Bad send-to address',
-          type: 'warning',
-          text: 'send-to address is empty!'
-        });
-        return false;
-      }
-
-      amount_send = xpc_to_mocha(amount_send) / 10000;
-      xpc_amount.val(amount_send);
-      whole_amount = amount_send * count;
-
-      var utxo_str = "TODO_FIX_ME!!";//todo
-      var utxo_idx = parseInt(utxo_str);
-      var utxo_arr = utxo_str.split(",");
-      var tutxo = null;
-      var target_utxos = [];
-      var target_utxo_indices = [];
-      var target_utxo_amount_sum = 0;
-      if (utxo_arr.length > 1) {
-        //CSV(multiple)
-        for (let i = 0; i < utxo_arr.length; i++) {
-          utxo_idx = parseInt(utxo_arr[i]);
-          if (isNaN(utxo_idx)) {
-            alert("Bad UTXO index at " + i + ".");
-            return false;
-          }
-          if (utxo_idx < 0 || utxo_idx >= BADBADBADBADBADBADrecentUTXO.length) {
-            alert("UTXO index out of range.");
-            return false;
-          }
-          target_utxos.push(BADBADBADBADBADBADrecentUTXO[utxo_idx]);
-          target_utxo_indices.push(utxo_idx);
-          target_utxo_amount_sum += BADBADBADBADBADBADrecentUTXO[utxo_idx].amount;
-        }
-      } else {
-        if (isNaN(utxo_idx)) {
-          //JSON
-          try {
-            tutxo = JSON.parse(utxo_str);
-            target_utxos.push(tutxo);
-            target_utxo_indices.push(0);
-            target_utxo_amount_sum += tutxo.amount;
-          } catch (e) {
-            alert("UTXO is neither index nor valid JSON");
-            return false;
-          }
-        } else {
-          //index
-          if (utxo_idx < 0 || utxo_idx >= BADBADBADBADBADBADrecentUTXO.length) {
-            alert("UTXO index out of range.");
-            return false;
-          }
-          target_utxos.push(BADBADBADBADBADBADrecentUTXO[utxo_idx]);
-          target_utxo_indices.push(utxo_idx);
-          target_utxo_amount_sum += BADBADBADBADBADBADrecentUTXO[utxo_idx].amount;
-        }
-      }
-
-      var mywpkh = XPChain.payments.p2wpkh({
-        pubkey: WALLET.key.publicKey, network: window.XPCW.network
-      });
-      var mywpkh_s = null;
-      var built_tx = null;
-      var actual_size = -1;
-
-      var rl_remain = RETRY_LOOP;
-      while (true) {
-        switch (window.XPCW.feetype) {
-          case "per":
-            fee = Math.round((window.XPCW.fee * size) * 10.0) / 10000.0;
-            feemsg = " [" + window.XPCW.fee + "/kB]";
-            if (!xpc_infee.prop("checked")) {
-              feemsg += " total " + (fee + amount_send);
-            } else {
-              feemsg += " included";
-            }
-            break;
-          case "fix":
-            fee = window.XPCW.fee;
-            break;
-          default:
-            throw new Error("bad fee type!" + window.XPCW.feetype);
-        }
-        var tmamnt = 0;//total amount (include fee)
-        var tmsend = 0;//each send amount
-        if (xpc_infee.prop("checked")) {
-          tmsend = amount_send - fee;
-          tmamnt = amount_send;
-        } else {
-          tmsend = amount_send;
-          tmamnt = amount_send + fee;
-        }
-        var change;
-        change = target_utxo_amount_sum - tmamnt;
-        change = xpc_to_mocha(change) / 10000;
-        if (change !== 0 && change < window.XPCW.dust) {
-          if (window.XPCW.feetype !== "per" || actual_size > 0) {
-            if (change < 0) {
-              alert("insufficient UTXO(s) amount: " + target_utxo_amount_sum + " < " + tmamnt);
-            } else if (change > 0 && change < window.XPCW.dust) {
-              alert("change is too low!: " + change);
-            }
-            return false;
-          } else {
-            //set temp fee for recalculation...?
-            fee = 0.0001;//1 mocha
-            tmsend = target_utxo_amount_sum - fee;
-            if (tmsend > amount_send) {
-              fee += (tmsend - amount_send);
-              tmsend = amount_send;
-            }
-            change = 0;
-          }
-        }
-
-        var txb = new XPChain.TransactionBuilder(window.XPCW.network);
-        var txouts = [];
-        var txout;
-        var txins = [];
-        var txin;
-        var txins_s = [];
-        var txin_s;
-        for (let i = 0; i < target_utxos.length; i++) {
-          if (!target_utxos[i].confirmations) {
-            alert("UTXO #" + target_utxo_indices[i] + ": has no confirmations. may be orphaned coinbase Tx.");
-            return false;
-          } else if (target_utxos[i].confirmations < window.XPCW.min_conf) {
-            alert("UTXO #" + target_utxo_indices[i] + ": confirmatioins less than minimum (" + window.XPCW.min_conf + ")");
-            return false;
-          } else if (target_utxos[i].isCoinBase && target_utxos[i].confirmations < COINBASE_MIN_CONF) {
-            alert("UTXO #" + target_utxo_indices[i] + ": confirmatioins less than coinbase mature (" + COINBASE_MIN_CONF + ")");
-            return false;
-          }
-          txin = txb.addInput(target_utxos[i].txid, target_utxos[i].vout, null, mywpkh.output);
-          txins.push(txin);
-        }
-        for (let i = 0; i < count; i++) {
-          txout = txb.addOutput(toaddr, xpc_to_mocha(tmsend));
-          txouts.push(txout);
-        }
-        var exmsg = "";
-        if ($.trim(extra_data.val()) !== "") {
-          var data = XPChain.lib.Buffer.from(extra_data.val(), 'utf8');
-          var embed = XPChain.payments.embed({ data: [data] });
-          var txoutx = txb.addOutput(embed.output, 0);
-          exmsg = " and extra data";
-        }
-        if (change > 0) {
-          var txout1;
-          txout1 = txb.addOutput(mywpkh.address, xpc_to_mocha(change));
-        }
-        for (let i = 0; i < target_utxos.length; i++) {
-          txb.sign(txins[i], WALLET.key, null, null, xpc_to_mocha(target_utxos[i].amount));
-        }
-        built_tx = txb.build();
-        actual_size = built_tx.virtualSize();
-        if (window.XPCW.feetype === "per" && size !== actual_size) {
-          if (actual_size + 1 <= size) {
-            break;//1 mocha expensive...?
-          }
-          size = actual_size;
-          rl_remain -= 1;
-          if (rl_remain < 0) {
-            alert("can't calculate relative fee. set XPCW.feetype to 'fix' and adjust XPCW.fee .");
-            return false;
-          }
-        } else {
-          break;
-        }
-      }
-
-      var tx = built_tx.toHex();
-      var sendmsg = "send \n\n";
-      sendmsg += amount_send + " XPC";
-      sendmsg += "(with " + fee + " XPC fee" + feemsg + ")" + exmsg + "\n\nto\n\n" + toaddr + "\n\nproceed ok?"
-
-      const { value: send_conf } = await Swal.fire({
-        title: 'Send Confirm',
-        text: sendmsg,
-        showCancelButton: true
-      });
-
-      if (!send_conf) {
-        return false;
-      }
-
-      if (!window.XPCW.dryrun) {
-        ajaxed = true;
-        $.ajax({
-          type: 'POST',
-          url: CONTROLS.text.insight_api_url.val() + 'tx/send',
-          dataType: 'text',
-          data: "rawtx=" + tx,
-        }).done(function (sendres) {
-          var json = JSON.parse(sendres);
-          if (json && json.txid) {
-            var res_html = "<textarea id='send_result'>txid: " + json.txid;
-            if (window.XPCW.debug) {
-              res_html += "\nrawtx: " + tx;
-            }
-            res_html += "</textarea>";
-            Swal.fire({
-              title: 'Success!',
-              type: 'success',
-              html: res_html
-            });
-          } else {
-            Swal.fire({
-              title: 'Failure!',
-              type: 'error',
-              text: res_html
-            });
-          }
-        }).fail(function (xhr, tstat, err) {
-          Swal.fire({
-            title: 'Failure!',
-            type: 'error',
-            text: "" + tstat + ": " + err + " [" + xhr.responseText + "]"
-          });
-        }).always(function () { b(PAY_CONTROLS.btn.sendtx, true); });
-      } else {
-        (() => {
-          var res_html = "<textarea id='send_result'>rawtx: " + tx + "</textarea>";
-          Swal.fire({
-            title: 'DRY RUN',
-            type: 'info',
-            html: res_html
-          });
-        })();
-      }
-    } catch (e) {
-      Swal.fire({
-        title: 'Failure!',
-        type: 'error',
-        text: e.toString()
-      });
-    } finally {
-      if (!ajaxed) { b(PAY_CONTROLS.btn.sendtx, true); }
-    }
   });
 
   //#### INITIALIZE ####
@@ -1073,9 +1085,9 @@ $(document).ready(function () {
         //create new wallet - first boot
         WALLET.renew_key();
         ret = save_wallet(WALLET);
-        if (ret !== true){
+        if (ret !== true) {
           throw ret;
-        }        
+        }
         key_loaded();
       } else {
         //auto wallet loading

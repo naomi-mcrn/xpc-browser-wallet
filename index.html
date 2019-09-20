@@ -13,7 +13,7 @@
 <body id="body_noswal_height_override">
     <div id="container">
         <header>
-            <h1>XPC Browser Wallet<span class="ver">ver -.-.- ***</span><span class="debug tiny">DEBUG MODE</span></h1>
+            <h1>XPC Browser Wallet<span class="ver">ver -.-.- ***</span><span class="debug tiny">DEBUG</span></h1>
             <div class="hide">
                 <p>this is serverless insight-dependent wallet<em><br /><b>USE AT YOUR OWN RISK!!</b></em> <a id="insight_url" href="#" class="hide">Insight</a></p>
             </div>
@@ -67,6 +67,12 @@
             <button type="button" id="btn_updchk" class="cbtn">
                 <span>update check</span>
             </button>
+            <button type="button" id="btn_backup_wallet" class="cbtn warn">
+                <span>Backup wallet</span>
+            </button>
+            <button type="button" id="btn_recover_wallet" class="cbtn warn">
+                <span>Recover wallet</span>
+            </button>
         </div>
         <div id='qr_container'>
             <h2>Scan QR</h2>
@@ -78,7 +84,7 @@
         <div id="pay_form">
             <div class="crow ss">
                 <span>send to</span>
-                <textarea id="xpc_to">xpc1qqsl875nchke39nuat3pre8g7zgd6rc84twsxa3!tps7w33ejltssphcqyk</textarea>
+                <textarea id="xpc_to"></textarea>
                 <button type="button" id="btn_payto_qr" class="cbtn qrbtn"></button>     
             </div>
             <div class="crow ss">
@@ -113,7 +119,7 @@
         <script src="./js/jsQR-supp.js?r=1"></script>   
         <!-- apps - configure first! -->
         <script src="./js/config.js?r=1"></script>
-        <script src="./js/wallet.js?v=0.0.6&r=2&c=dev"></script>
+        <script src="./js/wallet.js?v=0.1.0&r=1&c=alpha"></script>
         <div id="script_dynamic_loading">                
         </div>
     </div>

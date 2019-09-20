@@ -20,6 +20,10 @@ h1, h2, h3, h4, h5, h6, p {
     margin: 0;
 }
 
+h1{
+    font-size: 1.8rem;
+}
+
 header {
     background-color: #DDFFFF;
 }
@@ -139,7 +143,7 @@ em > b {
 }
 
 .tiny{
-    font-size: 0.45em;
+    font-size: 0.4em;
     vertical-align: baseline; 
 }
 
@@ -185,6 +189,11 @@ input.dummy {
 
 .qrbtn > *{
     margin: auto;
+}
+
+#send_result {
+    width: 100%;
+    height: 120px;
 }
 
 /* jsQR */

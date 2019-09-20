@@ -2,16 +2,15 @@
 (function () {
     window.XPCW = window.XPCW || {};
     Object.defineProperty(window.XPCW, 'debug', {
-        value: true,
+        value: false,
         writable: false
     });//must be false. true is only for development!
     Object.defineProperty(window.XPCW, 'network', {
         value: XPChain.networks.xpchain,
         writable: false
     });//`xpchain` for mainnet, `testnet` for testnet
-    window.XPCW.fee = 0.1000;//XPC (fixed or per kB fee);
-    window.XPCW.feetype = "per";//per,fix,auto(disabled now)
-    window.XPCW.dust = 0.0546;//XPC, less than it is dust!
+    window.XPCW.fee = 1;//mocha (fixed or per byte fee);
+    window.XPCW.dust = 546;//mocha, less than it is dust!
     window.XPCW.dryrun = false;//don't send really if true
     window.XPCW.min_conf = 1;//require confirmation equal or greater than this 
 
