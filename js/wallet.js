@@ -302,9 +302,19 @@ $(document).ready(function () {
 
   const CONTROLS = {
     btn: {
+      myaddr: $("#btn_myaddr"),
       pay: $("#btn_pay"),
       refresh: $("#btn_refresh"),
-      updchk: $("#btn_updchk")
+      updchk: $("#btn_updchk"),
+      qrscan_cancel: $("#btn_qrscan_cancel")
+    },
+    text: {
+      xpc_addr: $("#xpc_addr"),
+      xpc_bal: $("#xpc_bal"),
+      insight_api_url: $("#insight_api_url")
+    },
+    panel: {
+      qr_container: $("#qr_container")
     },
     plc: {
       script_dynload: $("#script_dynamic_loading")
@@ -315,9 +325,23 @@ $(document).ready(function () {
   };
   $("#template").remove();
 
+  //PAY_CONTROLS are initialize and finalize on CONTROLS.btn.pay.click 
+  var PAY_CONTROLS = {
+    btn: {
+      payto_qr: null,
+    },
+    text: {
+      xpc_to: null,
+      xpc_amount: null,
+    },
+    check: {
+      xpc_infee: null
+    }
+  }
+
   var version_label = $("span.ver");
-  var insight_link = $("#insight_url");
-  var btn_addr_qr = $("#btn_addr_qr");
+  var insight_link = $("#insight_url");//todo integrity with insight_api_url
+
   var btn_impkey = $("#btn_impkey");
   var btn_delkey = $("#btn_delkey");
   var btn_loadkey = $("#btn_loadkey");
@@ -325,11 +349,6 @@ $(document).ready(function () {
   var btn_dumpkey = $("#btn_dumpkey");
   var btn_dumpwallet = $("#btn_dumpwallet");
   var btn_genkey = $("#btn_genkey");
-  var btn_sendtx = $("#btn_sendtx");
-  var insight_api_url = $("#insight_api_url");
-  var xpc_addr = $("#xpc_addr");
-  var xpc_bal = $("#xpc_bal");
-
 
   //#### UI FUNCTIONS ####
   function R_DONT_USE(s, apnd) {
@@ -347,7 +366,7 @@ $(document).ready(function () {
   function key_loaded() {
     show_wallet_to_ui(WALLET);
     b(btn_delkey, true);
-    b(btn_sendtx, true);
+    b(CONTROLS.btn.pay, true);
     b(btn_savekey, true);
     b(btn_dumpkey, true);
   }
@@ -355,29 +374,43 @@ $(document).ready(function () {
   function key_unloaded() {
     sweep_wallet_from_ui();
     b(btn_delkey, false);
-    b(btn_sendtx, false);
+    b(CONTROLS.btn.pay, false);
     b(btn_savekey, false);
     b(btn_dumpkey, false);
   }
 
   function show_wallet_to_ui(w){
-    if (xpc_addr.val() !== w.addr){
-      xpc_addr.val(w.addr);
+    if (CONTROLS.text.xpc_addr.val() !== w.addr){
+      CONTROLS.text.xpc_addr.val(w.addr);
     }
     //todo if sync_at is recent, show cached balance with black color.
     //otherwise, show cached balance with gray color.
-    xpc_bal.val(mocha_to_xpc(w.balance + w.balance_local));
+    CONTROLS.text.xpc_bal.val(mocha_to_xpc(w.balance + w.balance_local));
   }
 
   function sweep_wallet_from_ui(){
-    xpc_addr.val("");
-    xpc_bal.val("-.----");
+    CONTROLS.text.xpc_addr.val("");
+    CONTROLS.text.xpc_bal.val("-.----");
+  }
+
+  function qrscan_initialize(){
+    var cnvs = $("<canvas id='canvas' width='300' height='300'></canvas>");
+    cnvs.appendTo(CONTROLS.panel.qr_container);    
+    CONTROLS.panel.qr_container.show();
+    var canvasElement = document.getElementById("canvas");
+    window.jsQRLive.initialize(canvasElement);
+  }
+
+  function qrscan_finalize(){
+    CONTROLS.panel.qr_container.hide();
+    window.jsQRLive.scanStop();
+    $("#canvas").remove();
   }
 
   //#### UI HANDLERS ####
 
-  btn_addr_qr.click(function () {
-    var addr = $.trim(xpc_addr.val());
+  CONTROLS.btn.myaddr.click(function () {
+    var addr = $.trim(CONTROLS.text.xpc_addr.val());
     if (addr === "") {
       Swal.fire({
         title: 'Bad address',
@@ -403,16 +436,36 @@ $(document).ready(function () {
     var amount_send = 0;
     var fee_include = false;
 
+
+
     Swal.fire({
       title: 'Pay XPC',
       html: CONTROLS.tmpl.pay_form,
       showCancelButton: true,
       confirmButtonText: 'Pay',
       onRender: ()=>{
-      
+        //init controls
+        PAY_CONTROLS.btn.payto_qr = $("#btn_payto_qr");
+        PAY_CONTROLS.btn.payto_qr.qrcode({ width: 48, height: 48, text: 'Q' }); 
+        PAY_CONTROLS.text.xpc_to = $("#xpc_to");
+        PAY_CONTROLS.text.xpc_amount = $("#xpc_amount");
+        PAY_CONTROLS.check.xpc_infee = $("#xpc_infee");
+
+        //attach events
+        PAY_CONTROLS.btn.payto_qr.on("click",payform_btn_payto_qr_click);
       },
       preConfirm: ()=>{
         return false;
+      },
+      onClose:()=>{
+        //detach event
+        PAY_CONTROLS.btn.payto_qr.off("click",payform_btn_payto_qr_click);
+        
+        //finalize controls
+        PAY_CONTROLS.btn.payto_qr = null;
+        PAY_CONTROLS.text.xpc_to = null;
+        PAY_CONTROLS.text.xpc_amount = null;
+        PAY_CONTROLS.check.xpc_infee = null;
       }
     }).then((result)=>{
       if (result.value){
@@ -420,11 +473,12 @@ $(document).ready(function () {
       }
     });
 
-
   });
 
+
+
   CONTROLS.btn.refresh.click(function () {
-    var addr = $.trim(xpc_addr.val());
+    var addr = $.trim(CONTROLS.text.xpc_addr.val());
     if (addr === "") {
       Swal.fire({
         title: 'Bad address',
@@ -439,7 +493,7 @@ $(document).ready(function () {
 
       $.ajax({
         type: 'GET',
-        url: insight_api_url.val() + 'addr/' + addr + '/utxoExt',
+        url: CONTROLS.text.insight_api_url.val() + 'addr/' + addr + '/utxoExt',
         dataType: 'json',
       }).done(function (json) {
         if (!Array.isArray(json)) {
@@ -470,7 +524,7 @@ $(document).ready(function () {
           }
         }
 
-        xpc_bal.val(mocha_to_xpc(WALLET.balance + WALLET.balance_local));
+        CONTROLS.text.xpc_bal.val(mocha_to_xpc(WALLET.balance + WALLET.balance_local));
         save_wallet(WALLET);
         show_wallet_to_ui(WALLET);
       }).fail(function (xhr, tstat, err) {
@@ -651,12 +705,72 @@ $(document).ready(function () {
     }
   });
 
-  btn_sendtx.click(async function () {
+  //version checked
+  CONTROLS.plc.script_dynload.on("ver_fetched", function (e, data) {
+    console.log("script dynamically loaded.");
+    console.log(window.XPCW.latest_version);
+    if (version.major < window.XPCW.latest_version.major ||
+      version.minor < window.XPCW.latest_version.minor ||
+      version.revision < window.XPCW.latest_version.revision ||
+      version.build < window.XPCW.latest_version.build) {
+      Swal.fire({
+        title: "Update available",
+        text: "New version found. Update now?",
+        showCancelButton: true
+      }).then((result) => {
+        if (result.value) {
+          window.location.reload(true);
+        }
+      })
+    } else {
+      Swal.fire({
+        title: "Latest version",
+        text: "Already up to date."
+      })
+    }
+    b(CONTROLS.btn.updchk, true);
+  });
+
+  CONTROLS.btn.updchk.click(function (e) {
+    b(CONTROLS.btn.updchk, false);
+    var ts = Date.now();
+    var se = document.createElement("script");
+    se.src = "./js/version.js?ts=" + ts;
+    se.id = "scr_ver_fetch";
+    document.getElementById(CONTROLS.plc.script_dynload.prop("id")).appendChild(se);
+  });
+
+  CONTROLS.btn.qrscan_cancel.click(function (e){
+    qrscan_finalize();
+  });
+
+  //#### UI HANDLERS(PAY FORM)####
+
+  var payform_btn_payto_qr_click = (function(e){
+    qrscan_initialize();
+    window.jsQRLive.scanOnce().then((result) => {
+      if (result) {
+        PAY_CONTROLS.text.xpc_to.val(result);
+      }else{
+        //todo read failure?
+      }
+      qrscan_finalize();
+    }, (errobj) => {
+      qrscan_finalize();
+      Swal.fire({
+        title: 'QR Scan Error!',
+        type: 'error',
+        text: JSON.stringify(errobj)
+      });
+    });
+  });
+
+  var payform_btn_sendtx_click = (async function(e){
     var size = 1000;//1kB
     var fee = 0.1;//XPC
     var feemsg = "";
     var ajaxed = false;
-    b(btn_sendtx, false);
+    b(PAY_CONTROLS.btn.sendtx, false);
     try {
       var count = 1;
       var amount_send = parseFloat(xpc_amount.val());
@@ -862,7 +976,7 @@ $(document).ready(function () {
         ajaxed = true;
         $.ajax({
           type: 'POST',
-          url: insight_api_url.val() + 'tx/send',
+          url: CONTROLS.text.insight_api_url.val() + 'tx/send',
           dataType: 'text',
           data: "rawtx=" + tx,
         }).done(function (sendres) {
@@ -891,7 +1005,7 @@ $(document).ready(function () {
             type: 'error',
             text: "" + tstat + ": " + err + " [" + xhr.responseText + "]"
           });
-        }).always(function () { b(btn_sendtx, true); });
+        }).always(function () { b(PAY_CONTROLS.btn.sendtx, true); });
       } else {
         (() => {
           var res_html = "<textarea id='send_result'>rawtx: " + tx + "</textarea>";
@@ -909,45 +1023,9 @@ $(document).ready(function () {
         text: e.toString()
       });
     } finally {
-      if (!ajaxed) { b(btn_sendtx, true); }
+      if (!ajaxed) { b(PAY_CONTROLS.btn.sendtx, true); }
     }
   });
-
-  //version checked
-  CONTROLS.plc.script_dynload.on("ver_fetched", function (e, data) {
-    console.log("script dynamically loaded.");
-    console.log(window.XPCW.latest_version);
-    if (version.major < window.XPCW.latest_version.major ||
-      version.minor < window.XPCW.latest_version.minor ||
-      version.revision < window.XPCW.latest_version.revision ||
-      version.build < window.XPCW.latest_version.build) {
-      Swal.fire({
-        title: "Update available",
-        text: "New version found. Update now?",
-        showCancelButton: true
-      }).then((result) => {
-        if (result.value) {
-          window.location.reload(true);
-        }
-      })
-    } else {
-      Swal.fire({
-        title: "Latest version",
-        text: "Already up to date."
-      })
-    }
-    b(CONTROLS.btn.updchk, true);
-  });
-
-  CONTROLS.btn.updchk.click(function (e) {
-    b(CONTROLS.btn.updchk, false);
-    var ts = Date.now();
-    var se = document.createElement("script");
-    se.src = "./js/version.js?ts=" + ts;
-    se.id = "scr_ver_fetch";
-    document.getElementById(CONTROLS.plc.script_dynload.prop("id")).appendChild(se);
-  });
-
 
   //#### INITIALIZE ####
   (function () {
@@ -966,7 +1044,7 @@ $(document).ready(function () {
       //ui default value load
       version_label.text(version_str);
       insight_link.attr("href", window.XPCW.insight_urls[network_name]);
-      insight_api_url.val(window.XPCW.insight_api_urls[network_name]);
+      CONTROLS.text.insight_api_url.val(window.XPCW.insight_api_urls[network_name]);
       //default setting
       if (window.XPCW.defaults && window.XPCW.defaults[network_name]) {
         if (window.XPCW.defaults[network_name].infee === true) {
@@ -974,8 +1052,9 @@ $(document).ready(function () {
         }
       }
 
+      CONTROLS.btn.myaddr.qrcode({ width: 48, height: 48, text: 'Q' });
+      b(CONTROLS.btn.pay, false);
       b(btn_delkey, false);
-      b(btn_sendtx, false);
       b(btn_savekey, false);
       b(btn_dumpkey, false);
       b(btn_loadkey, true);
@@ -1031,7 +1110,7 @@ $(document).ready(function () {
           CONTROLS: CONTROLS,
           STRG: STRG
         }
-        $(".debug").removeClass("debug");
+        $(".debug").removeClass("debug").addClass("debug-ui");
       }
     } catch (e) {
       Swal.fire({

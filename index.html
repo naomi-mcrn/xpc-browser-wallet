@@ -10,10 +10,10 @@
     <link rel="icon" href="./favicon.png" type="image/png" />
     <link rel="manifest" href="./manifest">
 </head>
-<body>
+<body id="body_noswal_height_override">
     <div id="container">
         <header>
-            <h1>XPC Browser Wallet<span class="ver">ver -.-.- ***</span></h1>
+            <h1>XPC Browser Wallet<span class="ver">ver -.-.- ***</span><span class="debug tiny">DEBUG MODE</span></h1>
             <div class="hide">
                 <p>this is serverless insight-dependent wallet<em><br /><b>USE AT YOUR OWN RISK!!</b></em> <a id="insight_url" href="#" class="hide">Insight</a></p>
             </div>
@@ -26,7 +26,7 @@
             <div class="crow ss">
                 <span>address</span>
                 <textarea id="xpc_addr" readonly="readonly"></textarea>
-                <button type="button" id="btn_addr_qr" class="cbtn">QR</button>
+                <button type="button" id="btn_myaddr" class="cbtn qrbtn"></button>
             </div>
             <div class="crow ss">
                 <span>balance</span>
@@ -68,50 +68,53 @@
                 <span>update check</span>
             </button>
         </div>
-        <div id="template" class="hide">
-            <div id="pay_form">
-                <div class="crow ss">
-                    <span>send to</span>
-                    <textarea id="xpc_to">xpc1qqsl875nchke39nuat3pre8g7zgd6rc84twsxa3!tps7w33ejltssphcqyk</textarea>
-                    <button type="button" id="btn_payto_qr" class="cbtn">QR</button>     
-                </div>
-                <div class="crow ss">
-                    <span id="xpc_amount_title">amount(XPC)</span>
-                    <input type="text" id="xpc_amount" value="" />                
-                </div>
-                <div class="crow ss">
-                   <input type="checkbox" id="xpc_infee" />
-                   <label for="xpc_infee" class="nogrow">include fee</label>                
-                </div>
-                <div class="crow ss hide">
-                    <span>extra data(optional)</span>
-                    <input type="text" id="extra_data" value="" />
-                </div>
-                <button type="button" id="btn_sendtx" class="cbtn hide">
-                    <span>Send XPC!</span>
-                </button>    
+        <div id='qr_container'>
+            <h2>Scan QR</h2>
+            <div id='jsQRMsg'></div>
+            <button type="button" id="btn_qrscan_cancel" class="cbtn">Cancel</button>               
+        </div>
+    </div>
+    <div id="template" class="hide">
+        <div id="pay_form">
+            <div class="crow ss">
+                <span>send to</span>
+                <textarea id="xpc_to">xpc1qqsl875nchke39nuat3pre8g7zgd6rc84twsxa3!tps7w33ejltssphcqyk</textarea>
+                <button type="button" id="btn_payto_qr" class="cbtn qrbtn"></button>     
+            </div>
+            <div class="crow ss">
+                <span id="xpc_amount_title">amount</span>
+                <input type="text" id="xpc_amount" class="numeric large" value="" />
+                <span>XPC</span>                
+            </div>
+            <div class="crow ss">
+               <input type="checkbox" id="xpc_infee" />
+               <label for="xpc_infee" class="nogrow">include fee</label>                
+            </div>
+            <div class="crow ss hide">
+                <span>extra data(optional)</span>
+                <input type="text" id="extra_data" value="" />
             </div>
         </div>
-        <div id="script_loading" class="hide">
-            <!-- libs -->
-            <script src="./js/sweetalert2.js?r=1"></script>
-            <script src="./js/jquery-1.12.4.min.js"></script>
-            <!-- 
-            <script src="./js/xpchain-bundled.js?r=1"></script>
-            <script src="./js/bip38.js?r=1"></script> 
-            //-->
-            <script src="./js/xpchain-bundled.min.js?r=1"></script>
-            <script src="./js/bip38.min.js?r=1"></script>
-            <script src="./js/aes.js?r=1"></script>
-            <script src="./js/pbkdf2.js?r=1"></script>
-            <script src="./js/jquery.qrcode.min.js?r=1"></script>
-            <script src="./js/jsQR.js?r=1"></script>  
-            <script src="./js/jsQR-supp.js?r=1"></script>   
-            <!-- apps - configure first! -->
-            <script src="./js/config.js?r=1"></script>
-            <script src="./js/wallet.js?v=0.0.6&r=2&c=dev"></script>
-            <div id="script_dynamic_loading">                
-            </div>
+    </div>
+    <div id="script_loading" class="hide">
+        <!-- libs -->
+        <script src="./js/sweetalert2.js?r=1"></script>
+        <script src="./js/jquery-1.12.4.min.js"></script>
+        <!-- 
+        <script src="./js/xpchain-bundled.js?r=1"></script>
+        <script src="./js/bip38.js?r=1"></script> 
+        //-->
+        <script src="./js/xpchain-bundled.min.js?r=1"></script>
+        <script src="./js/bip38.min.js?r=1"></script>
+        <script src="./js/aes.js?r=1"></script>
+        <script src="./js/pbkdf2.js?r=1"></script>
+        <script src="./js/jquery.qrcode.min.js?r=1"></script>
+        <script src="./js/jsQR.js?r=1"></script>  
+        <script src="./js/jsQR-supp.js?r=1"></script>   
+        <!-- apps - configure first! -->
+        <script src="./js/config.js?r=1"></script>
+        <script src="./js/wallet.js?v=0.0.6&r=2&c=dev"></script>
+        <div id="script_dynamic_loading">                
         </div>
     </div>
 </body>
